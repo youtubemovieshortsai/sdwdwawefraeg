@@ -11,17 +11,24 @@ Turn a user's idea into a production-ready plan for the exact requested output f
 Prefer original characters and worlds. Build a coherent hook, story beats, visuals, dialogue/voiceover,
 captions, SFX/music, continuity and QC notes. Never claim media was generated when only a plan exists.
 For video outputs, target 45-60 seconds unless the brief requests another duration.
-For thumbnail outputs, create a single strong composition rather than a timeline.`;
+For thumbnail outputs, create a single strong composition rather than a timeline.
+
+Each video scene should use 1-3 complementary visual_packs chosen from:
+cinematic, mystery, tech, nature, documentary, comic, gaming, minimal.
+Use multiple packs when they improve creative variety, visual storytelling, pacing, atmosphere or genre.
+Avoid random combinations: every selected pack must have a clear visual purpose for that scene.
+Across the full video, vary the combinations between scenes so the result feels dynamic rather than repetitive.
+Keep character identity, environment, lighting and visual continuity consistent even when visual packs change.`;
 
 const sceneSchema={
  type:"object",additionalProperties:false,
  properties:{
   id:{type:"string"},start:{type:"number"},end:{type:"number"},
-  visual_prompt:{type:"string"},action:{type:"string"},dialogue:{type:"string"},
+  visual_prompt:{type:"string"},visual_packs:{type:"array",items:{type:"string"}},action:{type:"string"},dialogue:{type:"string"},
   caption:{type:"string"},sfx:{type:"array",items:{type:"string"}},
   music:{type:"string"},continuity:{type:"string"}
  },
- required:["id","start","end","visual_prompt","action","dialogue","caption","sfx","music","continuity"]
+ required:["id","start","end","visual_prompt","visual_packs","action","dialogue","caption","sfx","music","continuity"]
 };
 
 function productionSchema(){
