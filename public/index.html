@@ -9,14 +9,17 @@ pre{white-space:pre-wrap;max-height:600px;overflow:auto}@media(max-width:800px){
 <p>YouTube workflows: 1920×1080 (16:9), 1280×720 thumbnails, 1080×1920 Shorts en 1080×1920 Shorts thumbnails.</p>
 <div class="grid"><section class="card"><h2>Brief</h2><label>Output formaat</label><select id="format"><option value="youtube_landscape">YouTube video — 1920×1080 — 16:9</option><option value="youtube_thumbnail">YouTube thumbnail — 1280×720 — 16:9</option><option value="shorts">YouTube Shorts — 1080×1920 — 9:16</option><option value="shorts_thumbnail">Shorts thumbnail — 1080×1920 — 9:16</option></select><br><br>
 <textarea id="brief" rows="12" placeholder="Describe the video you want to make..."></textarea><br><br>
-<button onclick="plan()">Create production plan</button> <button onclick="save()">Save project</button>
-<p id="status"></p></section><section class="card"><h2>Production plan</h2><pre id="plan">{}</pre></section></div>
+<button onclick="plan()">Create production plan</button> <button onclick="runPipeline()">Run production pipeline</button> <button onclick="save()">Save project</button>
+<p id="status"></p></section><section class="card"><h2>Production plan</h2><pre id="plan">{}</pre><h3>Pipeline</h3><pre id="pipeline">{}</pre></section></div>
 </main><script>
 let current=null;
 async function plan(){const brief=document.querySelector("#brief").value;const format_id=document.querySelector("#format").value;document.querySelector("#status").textContent="Planning...";
 const r=await fetch("/api/plan",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({brief,format_id})});
 current=await r.json();document.querySelector("#plan").textContent=JSON.stringify(current,null,2);
 document.querySelector("#status").textContent=r.ok?"Plan ready":"Error: "+(current.error||"unknown");}
+async function runPipeline(){const brief=document.querySelector("#brief").value;const format_id=document.querySelector("#format").value;document.querySelector("#status").textContent="Building pipeline...";
+const r=await fetch("/api/production-pipeline",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({brief,format_id})});
+const x=await r.json();document.querySelector("#pipeline").textContent=JSON.stringify(x,null,2);document.querySelector("#status").textContent=r.ok?"Pipeline ready":"Error: "+(x.error||"unknown");if(r.ok){current=x.plan;document.querySelector("#plan").textContent=JSON.stringify(x.plan,null,2);}}
 async function save(){if(!current)return;const r=await fetch("/api/projects",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({plan:current,brief:document.querySelector("#brief").value,format_id:document.querySelector("#format").value})});
 const x=await r.json();document.querySelector("#status").textContent=r.ok?"Saved project "+x.id:"Error: "+x.error;}
 </script></body></html>
