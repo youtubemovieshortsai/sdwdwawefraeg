@@ -41,3 +41,27 @@ The studio now supports an end-to-end local pipeline:
 7. Run automated format/render/pipeline tests through GitHub Actions.
 
 The local provider is intentionally deterministic: it creates clip jobs and accepts imported/generated clip files for final assembly. A production video-generation provider can be connected without changing the planning or render contracts.
+
+
+## Production runtime
+
+Set these environment variables before starting the studio:
+
+- `OPENAI_API_KEY`: planning, TTS and thumbnail generation.
+- `GEMINI_API_KEY`: Veo 3.1 video generation.
+- `VIDEO_PROVIDER=google_veo`
+- `VEO_MODEL=veo-3.1-generate-preview`
+- `VEO_RESOLUTION=720p` (the final FFmpeg render is resized to the exact requested YouTube canvas).
+- `OUTPUT_DIR=renders`
+
+The production button runs:
+
+`brief -> structured plan -> storyboard -> subtitles -> voiceover -> Veo clips -> FFmpeg assembly -> final MP4/PNG`
+
+For thumbnails, the pipeline uses the AI image generator and then renders the result to the exact requested dimensions.
+
+The application exposes generated assets under `/renders` and provides `/api/video/jobs/:id` for provider job inspection.
+
+### Quality and reliability
+
+The pipeline keeps planning, generation and rendering behind separate interfaces so the video provider can be replaced without changing the creative workflow. Provider failures are surfaced as explicit errors rather than being represented as successful renders. CI runs the deterministic planning, format, storyboard and subtitle tests without requiring production API credentials.
