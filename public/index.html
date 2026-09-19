@@ -64,16 +64,18 @@ async function produce(){
 }
 async function pollJob(){
  clearTimeout(pollTimer);
- const r=await fetch("/api/production-jobs/"+activeJob),job=await r.json();
- if(!r.ok)throw new Error(job.error||"Could not read production job");
- if(job.status==="queued"){setProgress(8);setStatus("Job queued…");return pollTimer=setTimeout(pollJob,1500);}
- if(job.status==="running"){setProgress(45);setStatus("Generating scenes, video and audio…");return pollTimer=setTimeout(pollJob,3000);}
- if(job.status==="failed"){setProgress(0);setStatus("Production error: "+(job.error||"Unknown error"));$("#produceBtn").disabled=false;return;}
- if(job.status==="completed"){
-  setProgress(100);const x=job.result;current=x.plan;$("#plan").textContent=JSON.stringify(x.plan,null,2);$("#storyboard").textContent=JSON.stringify(x.storyboard||[],null,2);renderResult(x);setStatus("Production complete.");$("#produceBtn").disabled=false;
- }
+ try{
+  const r=await fetch("/api/production-jobs/"+activeJob),job=await r.json();
+  if(!r.ok)throw new Error(job.error||"Could not read production job");
+  if(job.status==="queued"){setProgress(8);setStatus("Job queued…");return pollTimer=setTimeout(pollJob,1500);}
+  if(job.status==="running"){setProgress(45);setStatus("Generating scenes, video and audio…");return pollTimer=setTimeout(pollJob,3000);}
+  if(job.status==="failed"){setProgress(0);setStatus("Production error: "+(job.error||"Unknown error"));$("#produceBtn").disabled=false;return;}
+  if(job.status==="completed"){
+   setProgress(100);const x=job.result;current=x.plan;$("#plan").textContent=JSON.stringify(x.plan,null,2);$("#storyboard").textContent=JSON.stringify(x.storyboard||[],null,2);renderResult(x);setStatus("Production complete.");$("#produceBtn").disabled=false;
+  }
+ }catch(e){setProgress(0);setStatus("Production error: "+e.message);$("#produceBtn").disabled=false;}
 }
-function renderResult(x){$("#empty").style.display="none";$("#links").innerHTML="";$("#preview").style.display="block";const p=x.rendered?.output;if(!p)return;const url="/"+p.replace(/^\//,"");if(x.format.id.includes("thumbnail")){$("#preview").innerHTML='<img src="'+url+'" alt="Generated thumbnail">';}else{$("#preview").innerHTML='<video controls playsinline src="'+url+'"></video>';}const a=document.createElement("a");a.href=url;a.target="_blank";a.textContent="Open output";$("#links").appendChild(a);if(x.subtitles?.output){const s=document.createElement("a");s.href="/"+x.subtitles.output.replace(/^\//,"");s.target="_blank";s.textContent="Open subtitles (.srt)";$("#links").appendChild(s);}}
+function renderResult(x){$("#empty").style.display="none";$("#links").innerHTML="";$("#preview").style.display="block";const url=x.rendered?.output_url;if(!url)return;if(x.format.id.includes("thumbnail")){$("#preview").innerHTML='<img src="'+url+'" alt="Generated thumbnail">';}else{$("#preview").innerHTML='<video controls playsinline src="'+url+'"></video>';}const a=document.createElement("a");a.href=url;a.target="_blank";a.textContent="Open output";$("#links").appendChild(a);if(x.subtitles?.output_url){const s=document.createElement("a");s.href=x.subtitles.output_url;s.target="_blank";s.textContent="Open subtitles (.srt)";$("#links").appendChild(s);}}
 async function save(){try{if(!current)await plan();const x=await api("/api/projects",{plan:current,brief:$("#brief").value,format_id:$("#format").value});setStatus("Project saved: "+x.id);}catch(e){setStatus("Save error: "+e.message);}}
 health();
 </script></body></html>
