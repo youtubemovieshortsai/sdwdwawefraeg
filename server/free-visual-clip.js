@@ -28,7 +28,7 @@ function effectFilters(packIds,width,height){
   f.push("drawbox=x='0.07*w+0.02*w*sin(t*2)':y='0.12*h':w='0.86*w':h='0.002*h':color='white@0.35':t=fill");
  }
  if(ids.has("nature")){
-  f.push("drawbox=x='-0.3*w+0.55*w*sin(t*0.18)':y='-0.1*h':w='0.42*w':h='1.2*h':color='white@0.045':t=fill');
+  f.push("drawbox=x='-0.3*w+0.55*w*sin(t*0.18)':y='-0.1*h':w='0.42*w':h='1.2*h':color='white@0.045':t=fill") ;
   f.push("drawbox=x='0.72*w+0.35*w*sin(t*0.13+1)':y='-0.15*h':w='0.18*w':h='1.3*h':color='white@0.035':t=fill');
  }
  if(ids.has("documentary")){
