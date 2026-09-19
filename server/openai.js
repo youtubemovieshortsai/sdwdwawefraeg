@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { getOutputFormat } from "./formats.js";
+import { paidModeEnabled, requirePaidGeneration } from "./billing.js";
 
 let client=null;
 function getClient(){if(!client)client=new OpenAI({apiKey:process.env.OPENAI_API_KEY});return client;}
@@ -23,6 +24,8 @@ const sceneSchema={
 };
 
 export async function chat(messages){
+ if(!paidModeEnabled()) return {text:"Safe Free Mode is active. No paid OpenAI call was made. Use Plan only to prepare the production plan without spending money."};
+ requirePaidGeneration("OpenAI chat");
  if(!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured.");
  const response=await getClient().responses.create({
   model:process.env.OPENAI_MODEL||"gpt-5.6",
@@ -32,10 +35,18 @@ export async function chat(messages){
  return {text:response.output_text||""};
 }
 
+function createSafePlan(brief,format){
+ const isThumbnail=format.id.includes("thumbnail"),duration=isThumbnail?0:54,parts=isThumbnail?[]:["Hook","Set-up","Reveal","Escalation","Payoff","CTA"],step=parts.length?duration/parts.length:0;
+ const scenes=parts.map((label,i)=>({id:"scene-"+String(i+1).padStart(2,"0"),start:Number((i*step).toFixed(1)),end:Number(((i+1)*step).toFixed(1)),visual_prompt:"Cinematic "+label.toLowerCase()+" scene based on: "+brief+". Strong composition, natural lighting, detailed environment, consistent characters, professional YouTube look.",action:label+": advance the story clearly and visually.",dialogue:i===0?brief:"Continue the story with concise Dutch narration.",caption:i===0?brief.slice(0,120):label,sfx:["subtle cinematic transition"],music:"modern cinematic underscore, energetic but clean",continuity:"Maintain character identity, wardrobe, environment and visual language from previous scene."}));
+ return {title:brief.split(/[.!?]/)[0].trim().slice(0,90)||"AI Video",duration_seconds:duration,format,hook:brief,characters:["Original characters defined by the brief"],scenes,thumbnail_prompt:"High-impact YouTube thumbnail for: "+brief+". Cinematic subject, clear focal point, strong depth, professional composition, no clutter.",thumbnail_text:brief.split(/[.!?]/)[0].trim().slice(0,42),composition:"One dominant subject, readable hierarchy, strong contrast, safe margins and exact output dimensions.",qc:["Exact requested dimensions","Strong first-frame hook","Readable captions","Consistent characters and environment"]};
+}
+
 export async function createPlan(brief,formatId="youtube_landscape"){
  if(!brief.trim()) throw new Error("brief is required");
- if(!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured.");
  const format=getOutputFormat(formatId);
+ if(!paidModeEnabled()) return createSafePlan(brief,format);
+ requirePaidGeneration("OpenAI production planning");
+ if(!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured.");
  const isThumbnail=format.id.includes("thumbnail");
  const schema={
   type:"object",additionalProperties:false,
