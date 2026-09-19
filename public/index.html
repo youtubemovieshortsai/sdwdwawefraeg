@@ -1,0 +1,22 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Video Studio</title><style>
+body{margin:0;font-family:system-ui,sans-serif;background:#101114;color:#f5f5f5}main{max-width:1100px;margin:auto;padding:28px}
+textarea{width:100%;box-sizing:border-box;background:#191b20;color:#fff;border:1px solid #343740;border-radius:10px;padding:12px}
+button{background:#fff;color:#111;border:0;border-radius:9px;padding:11px 16px;font-weight:700;cursor:pointer}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card{background:#17191e;border:1px solid #292c34;border-radius:14px;padding:18px}
+pre{white-space:pre-wrap;max-height:600px;overflow:auto}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+</style></head><body><main><h1>AI Video Studio</h1>
+<p>Creative director + production planner for professional short-form video.</p>
+<div class="grid"><section class="card"><h2>Brief</h2>
+<textarea id="brief" rows="12" placeholder="Describe the video you want to make..."></textarea><br><br>
+<button onclick="plan()">Create production plan</button> <button onclick="save()">Save project</button>
+<p id="status"></p></section><section class="card"><h2>Production plan</h2><pre id="plan">{}</pre></section></div>
+</main><script>
+let current=null;
+async function plan(){const brief=document.querySelector("#brief").value;document.querySelector("#status").textContent="Planning...";
+const r=await fetch("/api/plan",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({brief})});
+current=await r.json();document.querySelector("#plan").textContent=JSON.stringify(current,null,2);
+document.querySelector("#status").textContent=r.ok?"Plan ready":"Error: "+(current.error||"unknown");}
+async function save(){if(!current)return;const r=await fetch("/api/projects",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({plan:current,brief:document.querySelector("#brief").value})});
+const x=await r.json();document.querySelector("#status").textContent=r.ok?"Saved project "+x.id:"Error: "+x.error;}
+</script></body></html>
