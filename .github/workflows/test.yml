@@ -4,9 +4,13 @@ on:
     branches: ["main", "feature/ai-video-studio"]
   pull_request:
     branches: ["main"]
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -14,3 +18,33 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npm test
+      - name: Verify provider credentials
+        if: github.event_name == 'push'
+        run: |
+          node --input-type=module <<'NODE'
+          const checks = [
+            {
+              name: "OpenAI",
+              url: "https://api.openai.com/v1/models",
+              headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }
+            },
+            {
+              name: "Gemini",
+              url: "https://generativelanguage.googleapis.com/v1beta/models",
+              headers: { "x-goog-api-key": process.env.GEMINI_API_KEY }
+            }
+          ];
+
+          for (const check of checks) {
+            if (!check.headers.Authorization?.trim() && !check.headers["x-goog-api-key"]?.trim()) {
+              throw new Error(`${check.name} secret is not configured`);
+            }
+
+            const response = await fetch(check.url, { headers: check.headers });
+            if (!response.ok) {
+              throw new Error(`${check.name} credential check failed with HTTP ${response.status}`);
+            }
+
+            console.log(`${check.name} credentials verified.`);
+          }
+          NODE
