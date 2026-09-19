@@ -11,6 +11,7 @@ import { generateVoiceover } from "./audio.js";
 import { buildStoryboard } from "./storyboard.js";
 import { runProductionPipeline } from "./pipeline.js";
 import { billingStatus } from "./billing.js";
+import { FREE_GEMINI_TEXT_MODEL, FREE_GEMINI_TTS_MODEL } from "./gemini.js";
 import { createJob, loadJob, listJobs, runJob } from "./jobs.js";
 
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
@@ -24,6 +25,8 @@ app.get("/api/health",(_req,res)=>res.json({
  ok:true,...billingStatus(),
  provider:process.env.VIDEO_PROVIDER||"local",
  video_model:process.env.VEO_MODEL||null,
+ free_text_model:FREE_GEMINI_TEXT_MODEL,
+ free_tts_model:FREE_GEMINI_TTS_MODEL,
  openai_configured:Boolean(process.env.OPENAI_API_KEY),
  gemini_configured:Boolean(process.env.GEMINI_API_KEY)
 }));
