@@ -4,6 +4,8 @@ import { listOutputFormats, getOutputFormat } from "../server/formats.js";
 import { buildRenderPlan } from "../server/render.js";
 import { buildStoryboard } from "../server/storyboard.js";
 import { runProductionPipeline } from "../server/pipeline.js";
+import { writeSrt } from "../server/subtitles.js";
+import fs from "node:fs/promises";
 
 test("all four YouTube output formats are exact",()=>{
  const formats=listOutputFormats(); assert.equal(formats.length,4);
@@ -28,4 +30,12 @@ test("pipeline creates clip jobs from an existing plan without an API key",async
  const plan={title:"Demo",duration_seconds:5,format:getOutputFormat("shorts"),hook:"Hook",characters:[],scenes:[{id:"1",start:0,end:5,visual_prompt:"demo",action:"",dialogue:"",caption:"",sfx:[],music:"",continuity:""}],thumbnail_prompt:"",thumbnail_text:"",composition:"",qc:[]};
  const out=await runProductionPipeline({plan,format_id:"shorts"});
  assert.equal(out.status,"planned"); assert.equal(out.clip_jobs.length,1); assert.equal(out.next_stage,"clip_generation");
+});
+
+test("subtitle writer creates valid SRT sidecar",async()=>{
+ const file="renders/test.srt";
+ const out=await writeSrt([{start:0,end:3,caption:"Hallo wereld"}],file);
+ assert.equal(out.count,1);
+ assert.match(await fs.readFile(file,"utf8"),/00:00:00,000 --> 00:00:03,000/);
+ await fs.rm(file,{force:true});
 });
