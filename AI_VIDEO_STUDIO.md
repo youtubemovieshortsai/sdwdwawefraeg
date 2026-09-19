@@ -1,67 +1,108 @@
 # AI Video Studio
 
-Local-first AI video production studio added alongside the existing repository content.
+Production-oriented AI video studio for YouTube videos, Shorts and thumbnails.
 
-## Run
+## Output formats
 
-```bash
+- YouTube video: **1920×1080, 16:9**
+- YouTube thumbnail: **1280×720, 16:9**
+- YouTube Shorts: **1080×1920, 9:16**
+- Shorts thumbnail: **1080×1920, 9:16**
+
+## Production flow
+
+The studio supports:
+
+1. OpenAI structured creative planning.
+2. Format-aware storyboard generation.
+3. OpenAI TTS voiceover generation.
+4. Google Veo clip generation through the provider adapter.
+5. FFmpeg assembly at the exact output canvas.
+6. AI thumbnail generation and exact-size rendering.
+7. SRT subtitle sidecars.
+8. Persistent local production-job state.
+9. Asynchronous production jobs with browser polling and progress feedback.
+10. Per-job output directories so simultaneous productions do not overwrite each other.
+11. Docker packaging with FFmpeg included.
+12. CI checks for tests and configured AI provider credentials.
+
+The application never reports a successful render when a provider fails.
+
+## Environment
+
+Copy .env.example to .env for local development:
+
+~~~bash
 cp .env.example .env
 npm install
 npm start
-```
+~~~
 
-Open http://localhost:3000.
+Required for the full AI pipeline:
 
-The studio uses OpenAI for creative planning and keeps video generation behind a provider adapter. This avoids coupling the application to a single video API.
+- OPENAI_API_KEY
+- GEMINI_API_KEY
 
-## Current MVP
+Recommended production configuration:
 
-- AI creative director
-- structured scene plans
-- 9:16 / 1080x1920 production target
-- 45-60 second planning target
-- local JSON project persistence
-- provider abstraction
-- render-plan output
-- minimal browser UI
+- VIDEO_PROVIDER=google_veo
+- VEO_MODEL=veo-3.1-generate-preview
+- VEO_RESOLUTION=720p
+- OUTPUT_DIR=renders
+- JOBS_DIR=jobs
 
-Next production steps: add authenticated project storage, a real video-provider adapter, TTS, caption rendering, asset/character bible, background music/SFX mixing, FFmpeg assembly, job queue and progress events.
+Never commit .env or API keys.
 
+## Docker
 
-## Production pipeline
+The repository includes a production Dockerfile with Node 20 and FFmpeg:
 
-The studio now supports an end-to-end local pipeline:
+~~~bash
+docker build -t ai-video-studio .
+docker run --rm -p 3000:8080 \
+  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+  -e GEMINI_API_KEY="$GEMINI_API_KEY" \
+  -e VIDEO_PROVIDER=google_veo \
+  ai-video-studio
+~~~
 
-1. Generate a format-aware production plan with OpenAI Structured Outputs.
-2. Normalize the plan into a storyboard.
-3. Optionally generate Dutch voiceover with OpenAI TTS.
-4. Create clip jobs through the provider abstraction.
-5. Assemble supplied video clips with FFmpeg at the exact selected canvas size.
-6. Render supplied thumbnail images to the exact PNG dimensions.
-7. Run automated format/render/pipeline tests through GitHub Actions.
+The container listens on PORT and binds to all interfaces, which makes it suitable for managed container platforms.
 
-The local provider is intentionally deterministic: it creates clip jobs and accepts imported/generated clip files for final assembly. A production video-generation provider can be connected without changing the planning or render contracts.
+## API
 
+- GET /api/health — runtime/provider configuration status without exposing secrets.
+- GET /api/formats — supported output formats.
+- POST /api/plan — create an AI production plan.
+- POST /api/production-jobs — enqueue an asynchronous full production.
+- GET /api/production-jobs/:id — poll a production job.
+- GET /api/production-jobs — list persisted production jobs.
+- POST /api/production-pipeline — synchronous pipeline endpoint for automation.
+- POST /api/video/generate — direct provider clip generation.
+- GET /api/video/jobs/:id — provider job inspection.
+- POST /api/audio/voiceover — direct TTS generation.
+- POST /api/projects / GET /api/projects — local project storage.
 
-## Production runtime
+Generated media is served under /renders.
 
-Set these environment variables before starting the studio:
+## Deployment
 
-- `OPENAI_API_KEY`: planning, TTS and thumbnail generation.
-- `GEMINI_API_KEY`: Veo 3.1 video generation.
-- `VIDEO_PROVIDER=google_veo`
-- `VEO_MODEL=veo-3.1-generate-preview`
-- `VEO_RESOLUTION=720p` (the final FFmpeg render is resized to the exact requested YouTube canvas).
-- `OUTPUT_DIR=renders`
+The application is container-ready for a managed Node/FFmpeg runtime such as Google Cloud Run. Cloud Run can deploy a Node web service from source or a container, but its default writable filesystem is disposable; production media and project data should therefore be copied to or backed by durable object storage/database storage before treating the service as a multi-instance permanent asset store.
 
-The production button runs:
+For a real public production deployment, configure:
 
-`brief -> structured plan -> storyboard -> subtitles -> voiceover -> Veo clips -> FFmpeg assembly -> final MP4/PNG`
+- a container service,
+- durable object storage for rendered MP4/PNG/SRT assets,
+- durable database storage for projects/jobs,
+- authenticated access and rate limiting,
+- provider/API spending limits,
+- HTTPS and a custom domain.
 
-For thumbnails, the pipeline uses the AI image generator and then renders the result to the exact requested dimensions.
+The codebase is deliberately structured so these infrastructure pieces can be added without changing the creative planning contracts.
 
-The application exposes generated assets under `/renders` and provides `/api/video/jobs/:id` for provider job inspection.
+## Local deterministic tests
 
-### Quality and reliability
+~~~bash
+npm test
+~~~
 
-The pipeline keeps planning, generation and rendering behind separate interfaces so the video provider can be replaced without changing the creative workflow. Provider failures are surfaced as explicit errors rather than being represented as successful renders. CI runs the deterministic planning, format, storyboard and subtitle tests without requiring production API credentials.
+The test suite does not require production provider credentials.
