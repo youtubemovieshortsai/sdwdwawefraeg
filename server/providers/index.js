@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { runFfmpeg } from "../ffmpeg.js";
-import { requirePaidGeneration } from "../billing.js";
+import { paidModeEnabled, requirePaidGeneration } from "../billing.js";
 import { getVisualPacks } from "../visual-packs/index.js";
 import { generateFreeVisualClip } from "../free-visual-clip.js";
 
@@ -55,7 +55,7 @@ async function generateVeoClip(input={}){
 }
 
 export function getVideoProvider(){
- const name=(process.env.VIDEO_PROVIDER||"local").toLowerCase();
+ const name=paidModeEnabled()?(process.env.VIDEO_PROVIDER||"google_veo").toLowerCase():"local";
  if(name==="google_veo"||name==="veo")return{async generateClip(input={}){return generateVeoClip(input);},async getJob(id){return jobs.get(id)||null;}};
  if(name==="local"||name==="stub")return{async generateClip(input={}) {
   const job=clipJob(input,{status:"running",provider:"local_free"});
