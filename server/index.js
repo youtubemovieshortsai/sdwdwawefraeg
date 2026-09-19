@@ -6,6 +6,7 @@ import { createPlan, chat } from "./openai.js";
 import { saveProject, loadProject, listProjects } from "./projects.js";
 import { getVideoProvider } from "./providers/index.js";
 import { buildRenderPlan } from "./render.js";
+import { listOutputFormats, getOutputFormat } from "./formats.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -13,8 +14,10 @@ app.use(express.json({limit:"2mb"}));
 app.use(express.static(path.join(__dirname,"..","public")));
 
 app.get("/api/health", (_req,res)=>res.json({ok:true, provider:process.env.VIDEO_PROVIDER||"stub"}));
+app.get("/api/formats",(_req,res)=>res.json({formats:listOutputFormats()}));
+app.get("/api/formats/:id",(req,res)=>{try{res.json(getOutputFormat(req.params.id));}catch(e){res.status(400).json({error:e.message});}});
 app.post("/api/chat", async (req,res)=>{try{res.json(await chat(req.body?.messages||[]));}catch(e){res.status(500).json({error:e.message});}});
-app.post("/api/plan", async (req,res)=>{try{res.json(await createPlan(req.body?.brief||""));}catch(e){res.status(500).json({error:e.message});}});
+app.post("/api/plan", async (req,res)=>{try{res.json(await createPlan(req.body?.brief||"",req.body?.format_id||"youtube_landscape"));}catch(e){res.status(500).json({error:e.message});}});
 app.post("/api/projects", async (req,res)=>{try{res.json(await saveProject(req.body));}catch(e){res.status(500).json({error:e.message});}});
 app.get("/api/projects", async (_req,res)=>{try{res.json(await listProjects());}catch(e){res.status(500).json({error:e.message});}});
 app.get("/api/projects/:id", async (req,res)=>{try{res.json(await loadProject(req.params.id));}catch(e){res.status(404).json({error:e.message});}});
