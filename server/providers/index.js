@@ -4,6 +4,14 @@ import path from "node:path";
 import { runFfmpeg } from "../ffmpeg.js";
 
 const jobs=new Map();
+
+export const VEO_GEMINI_PREVIEW_MODELS=new Set(["veo-3.1-generate-preview","veo-3.1-fast-generate-preview","veo-3.1-lite-generate-preview"]);
+export const VEO_GEMINI_API_BASE_URL="https://generativelanguage.googleapis.com/v1beta";
+export function getVeoModel(){return process.env.VEO_MODEL||"veo-3.1-generate-preview";}
+export function getVeoGenerateUrl(model=getVeoModel()){
+ if(!VEO_GEMINI_PREVIEW_MODELS.has(model))throw new Error("Unsupported Gemini API Veo model: "+model+". Use veo-3.1-generate-preview, veo-3.1-fast-generate-preview, or veo-3.1-lite-generate-preview.");
+ return VEO_GEMINI_API_BASE_URL+"/models/"+model+":predictLongRunning";
+}
 const clipJob=(input={},extra={})=>{const id=randomUUID();const job={id,status:"queued",provider:process.env.VIDEO_PROVIDER||"local",created_at:new Date().toISOString(),input,...extra};jobs.set(id,job);return job;};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const concatPath=file=>path.resolve(file).replace(/\\/g,"/").replace(/'/g,"'\\''");
@@ -16,9 +24,9 @@ async function googleRequest(url,options={}){
 }
 
 async function generateVeoClip(input={}){
- const format=input.format||{},aspectRatio=format.aspect_ratio||"16:9",model=process.env.VEO_MODEL||"veo-3.1-generate-preview";
+ const format=input.format||{},aspectRatio=format.aspect_ratio||"16:9",model=getVeoModel();
  const prompt=["Professional cinematic YouTube footage.","Aspect ratio "+aspectRatio+".","Keep characters, wardrobe, environment and visual style consistent.",input.scene?.visual_prompt||"",input.scene?.action||"",input.scene?.continuity?"Continuity: "+input.scene.continuity:"",input.scene?.dialogue?"Dialogue/audio cue: "+input.scene.dialogue:"",input.scene?.sfx?.length?"Sound effects: "+input.scene.sfx.join(", "):"",input.scene?.music?"Music: "+input.scene.music:""].filter(Boolean).join("\n");
- const data=await googleRequest("https://generativelanguage.googleapis.com/v1beta/models/"+model+":predictLongRunning",{method:"POST",body:JSON.stringify({instances:[{prompt}],parameters:{aspectRatio,resolution:process.env.VEO_RESOLUTION||"720p",numberOfVideos:1}})});
+ const data=await googleRequest(getVeoGenerateUrl(model),{method:"POST",body:JSON.stringify({instances:[{prompt}],parameters:{aspectRatio,resolution:process.env.VEO_RESOLUTION||"720p",numberOfVideos:1}})});
  if(!data.name)throw new Error("Veo did not return an operation name.");
  const job=clipJob(input,{status:"running",operation:data.name,provider:"google_veo"}),started=Date.now();
  while(Date.now()-started<Number(process.env.VEO_TIMEOUT_MS||600000)){
