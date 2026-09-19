@@ -1,0 +1,25 @@
+import "dotenv/config";
+import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createPlan, chat } from "./openai.js";
+import { saveProject, loadProject, listProjects } from "./projects.js";
+import { getVideoProvider } from "./providers/index.js";
+import { buildRenderPlan } from "./render.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const app = express();
+app.use(express.json({limit:"2mb"}));
+app.use(express.static(path.join(__dirname,"..","public")));
+
+app.get("/api/health", (_req,res)=>res.json({ok:true, provider:process.env.VIDEO_PROVIDER||"stub"}));
+app.post("/api/chat", async (req,res)=>{try{res.json(await chat(req.body?.messages||[]));}catch(e){res.status(500).json({error:e.message});}});
+app.post("/api/plan", async (req,res)=>{try{res.json(await createPlan(req.body?.brief||""));}catch(e){res.status(500).json({error:e.message});}});
+app.post("/api/projects", async (req,res)=>{try{res.json(await saveProject(req.body));}catch(e){res.status(500).json({error:e.message});}});
+app.get("/api/projects", async (_req,res)=>{try{res.json(await listProjects());}catch(e){res.status(500).json({error:e.message});}});
+app.get("/api/projects/:id", async (req,res)=>{try{res.json(await loadProject(req.params.id));}catch(e){res.status(404).json({error:e.message});}});
+app.post("/api/render-plan", async (req,res)=>{try{res.json(buildRenderPlan(req.body));}catch(e){res.status(400).json({error:e.message});}});
+app.post("/api/video/generate", async (req,res)=>{try{res.status(202).json(await getVideoProvider().generateClip(req.body));}catch(e){res.status(500).json({error:e.message});}});
+
+const port=Number(process.env.PORT||3000);
+app.listen(port,()=>console.log(`AI Video Studio running at http://localhost:${port}`));
