@@ -10,6 +10,7 @@ import { listOutputFormats, getOutputFormat } from "./formats.js";
 import { generateVoiceover } from "./audio.js";
 import { buildStoryboard } from "./storyboard.js";
 import { runProductionPipeline } from "./pipeline.js";
+import { billingStatus } from "./billing.js";
 import { createJob, loadJob, listJobs, runJob } from "./jobs.js";
 
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
@@ -20,7 +21,7 @@ app.use(express.static(path.join(__dirname,"..","public")));
 app.use("/renders",express.static(outputDir));
 
 app.get("/api/health",(_req,res)=>res.json({
- ok:true,
+ ok:true,...billingStatus(),
  provider:process.env.VIDEO_PROVIDER||"local",
  video_model:process.env.VEO_MODEL||null,
  openai_configured:Boolean(process.env.OPENAI_API_KEY),
