@@ -86,7 +86,7 @@ if ! gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
     --workload-identity-pool="$POOL_ID" \
     --issuer-uri="https://token.actions.githubusercontent.com/" \
     --attribute-mapping="google.subject=assertion.sub,attribute.repository_id=assertion.repository_id" \
-    --attribute-condition="assertion.repository_id=='$REPO_ID'"
+    --attribute-condition="assertion.repository_id=='$REPO_ID' && assertion.ref=='refs/heads/main'"
 fi
 
 gcloud iam service-accounts add-iam-policy-binding "$DEPLOY_SA" \
