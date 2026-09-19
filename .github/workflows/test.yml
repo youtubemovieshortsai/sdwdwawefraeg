@@ -18,6 +18,10 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npm test
+      - name: Verify Veo preview model availability
+        if: github.event_name == 'push'
+        run: node scripts/test-veo-endpoints.mjs
+
       - name: Verify provider credentials
         if: github.event_name == 'push'
         run: |
