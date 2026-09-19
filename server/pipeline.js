@@ -9,6 +9,13 @@ import { getVideoProvider, assembleVideo, renderThumbnail } from "./providers/in
 import { writeSrt } from "./subtitles.js";
 import { getOutputFormat } from "./formats.js";
 
+const publicAsset=file=>{
+ if(!file)return null;
+ const root=path.resolve(process.env.OUTPUT_DIR||"renders");
+ const rel=path.relative(root,path.resolve(file)).split(path.sep).join("/");
+ return "/renders/"+rel.replace(/^\/+/, "");
+};
+
 export async function runProductionPipeline(input={}){
  const brief=String(input.brief||"").trim();
  const format_id=input.format_id||"youtube_landscape";
@@ -24,18 +31,20 @@ export async function runProductionPipeline(input={}){
  const output=input.output||path.join(workDir,format.id+"."+(format.id.includes("thumbnail")?"png":"mp4"));
  const subtitleOutput=input.subtitle_output||output.replace(/.[^.]+$/,".srt");
  const subtitles=await writeSrt(storyboard,subtitleOutput);
+ const publicSubtitles={...subtitles,output_url:publicAsset(subtitles.output)};
 
  if(format.id.includes("thumbnail")){
   const rendered=input.image_file
    ? await renderThumbnail({input:input.image_file,output,width:format.width,height:format.height})
    : await generateThumbnail({prompt:plan.thumbnail_prompt||brief,output,width:format.width,height:format.height});
-  return {status:"rendered",job_id:jobId,format,plan,storyboard,render:{...render,output},rendered,subtitles,next_stage:"complete"};
+  return {status:"rendered",job_id:jobId,format,plan,storyboard,render:{...render,output},rendered:{...rendered,output_url:publicAsset(rendered.output)},subtitles:publicSubtitles,next_stage:"complete"};
  }
 
  let voiceover=null;
  const voiceText=input.voiceover_text||storyboard.map(s=>s.dialogue).filter(Boolean).join(" ");
  if(input.generate_voiceover!==false&&voiceText.trim()){
-  voiceover=await generateVoiceover({text:voiceText,voice:input.voice||"nova",output:input.voiceover_output||path.join(workDir,"voiceover.mp3")});
+  const generated=await generateVoiceover({text:voiceText,voice:input.voice||"nova",output:input.voiceover_output||path.join(workDir,"voiceover.mp3")});
+  voiceover={...generated,output_url:publicAsset(generated.output)};
  }
 
  const provider=getVideoProvider();
@@ -48,7 +57,7 @@ export async function runProductionPipeline(input={}){
    format,
    output:path.join(workDir,"clip-"+String(i+1).padStart(2,"0")+".mp4")
   });
-  clipJobs.push(job);
+  clipJobs.push({...job,output_url:publicAsset(job.output)});
   if(job.output)clipFiles.push(job.output);
  }
 
@@ -56,20 +65,14 @@ export async function runProductionPipeline(input={}){
 
  let rendered=null;
  if(clipFiles.length){
-  rendered=await assembleVideo({
-   clips:clipFiles,
-   voiceover:voiceover?.output,
-   output,
-   width:format.width,
-   height:format.height,
-   fps:30
-  });
+  const assembled=await assembleVideo({clips:clipFiles,voiceover:voiceover?.output,output,width:format.width,height:format.height,fps:30});
+  rendered={...assembled,output_url:publicAsset(assembled.output)};
  }
 
  return {
   status:rendered?"rendered":"planned",
   job_id:jobId,
-  format,plan,storyboard,voiceover,subtitles,clip_jobs:clipJobs,
+  format,plan,storyboard,voiceover,subtitles:publicSubtitles,clip_jobs:clipJobs,
   render:{...render,output},
   rendered,
   next_stage:rendered?"complete":"clip_generation"
