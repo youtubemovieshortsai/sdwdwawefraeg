@@ -9,6 +9,7 @@ import { buildRenderPlan } from "./render.js";
 import { listOutputFormats, getOutputFormat } from "./formats.js";
 import { generateVoiceover } from "./audio.js";
 import { buildStoryboard } from "./storyboard.js";
+import { runProductionPipeline } from "./pipeline.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
