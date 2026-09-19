@@ -1,0 +1,37 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { listOutputFormats, getOutputFormat } from "../server/formats.js";
+import { buildRenderPlan } from "../server/render.js";
+import { buildStoryboard } from "../server/storyboard.js";
+
+test("all four YouTube output formats are exact",()=>{
+ const formats=listOutputFormats();
+ assert.equal(formats.length,4);
+ assert.deepEqual(getOutputFormat("youtube_landscape"),{id:"youtube_landscape",label:"YouTube video",width:1920,height:1080,aspect_ratio:"16:9",purpose:"standard YouTube landscape video"});
+ assert.equal(getOutputFormat("youtube_thumbnail").width,1280);
+ assert.equal(getOutputFormat("shorts").height,1920);
+ assert.equal(getOutputFormat("shorts_thumbnail").aspect_ratio,"9:16");
+});
+
+test("render plan uses selected canvas",()=>{
+ const p=buildRenderPlan({format_id:"shorts",scenes:[{id:"1",start:0,end:5}]});
+ assert.equal(p.canvas.width,1080);
+ assert.equal(p.canvas.height,1920);
+ assert.equal(p.canvas.fps,30);
+ assert.equal(p.output,"renders/shorts.mp4");
+});
+
+test("thumbnail render plan is PNG without video codec",()=>{
+ const p=buildRenderPlan({format_id:"youtube_thumbnail"});
+ assert.equal(p.canvas.width,1280);
+ assert.equal(p.canvas.height,720);
+ assert.equal(p.canvas.fps,null);
+ assert.equal(p.codec,null);
+ assert.equal(p.output,"renders/youtube_thumbnail.png");
+});
+
+test("storyboard normalizes scene durations",()=>{
+ const s=buildStoryboard({scenes:[{id:"a",start:2,end:7,dialogue:"Hallo"}]});
+ assert.equal(s[0].duration,5);
+ assert.equal(s[0].dialogue,"Hallo");
+});
