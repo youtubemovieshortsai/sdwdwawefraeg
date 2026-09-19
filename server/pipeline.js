@@ -4,6 +4,7 @@ import { buildRenderPlan } from "./render.js";
 import { generateVoiceover } from "./audio.js";
 import { generateThumbnail } from "./media.js";
 import { getVideoProvider, assembleVideo, renderThumbnail } from "./providers/index.js";
+import { writeSrt } from "./subtitles.js";
 import { getOutputFormat } from "./formats.js";
 
 export async function runProductionPipeline(input={}){
@@ -15,14 +16,16 @@ export async function runProductionPipeline(input={}){
  const storyboard=buildStoryboard(plan);
  const render=buildRenderPlan({plan,format_id:format.id});
  const output=input.output||render.output;
+ const subtitleOutput=input.subtitle_output||output.replace(/\.[^.]+$/,".srt");
+ const subtitles=await writeSrt(storyboard,subtitleOutput);
 
  if(format.id.includes("thumbnail")){
   if(input.image_file){
    const rendered=await renderThumbnail({input:input.image_file,output,width:format.width,height:format.height});
-   return {status:"rendered",format,plan,storyboard,render,rendered,next_stage:"complete"};
+   return {status:"rendered",format,plan,storyboard,render,rendered,subtitles,next_stage:"complete"};
   }
   const rendered=await generateThumbnail({prompt:plan.thumbnail_prompt||brief,output,width:format.width,height:format.height});
-  return {status:"rendered",format,plan,storyboard,render,rendered,next_stage:"complete"};
+  return {status:"rendered",format,plan,storyboard,render,rendered,subtitles,next_stage:"complete"};
  }
 
  let voiceover=null;
@@ -48,7 +51,7 @@ export async function runProductionPipeline(input={}){
 
  return {
   status:rendered?"rendered":"planned",
-  format,plan,storyboard,voiceover,clip_jobs:clipJobs,render,rendered,
+  format,plan,storyboard,voiceover,subtitles,clip_jobs:clipJobs,render,rendered,
   next_stage:rendered?"complete":"clip_generation"
  };
 }
