@@ -8,6 +8,7 @@ import { generateThumbnail } from "./media.js";
 import { getVideoProvider, assembleVideo, renderThumbnail } from "./providers/index.js";
 import { writeSrt } from "./subtitles.js";
 import { getOutputFormat } from "./formats.js";
+import { paidModeEnabled } from "./billing.js";
 
 const publicAsset=file=>{
  if(!file)return null;
@@ -23,6 +24,7 @@ export async function runProductionPipeline(input={}){
 
  const plan=input.plan||await createPlan(brief,format_id);
  const format=getOutputFormat(plan.format?.id||format_id);
+ if(!paidModeEnabled()) throw new Error("Safe Free Mode is active: cinematic video, AI thumbnails and paid voice generation are locked. No paid API call was made. Your production plan is available via Plan only.");
  const storyboard=buildStoryboard(plan);
  const jobId=input.job_id||randomUUID();
  const root=path.resolve(process.env.OUTPUT_DIR||"renders");
