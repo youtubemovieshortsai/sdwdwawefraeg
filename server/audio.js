@@ -9,15 +9,17 @@ function getClient(){if(!client)client=new OpenAI({apiKey:process.env.OPENAI_API
 
 export async function generateVoiceover({text,voice="nova",output="renders/voiceover.mp3"}){
  if(!text?.trim()) throw new Error("text is required");
- await fs.mkdir(path.dirname(output),{recursive:true});
 
  if(!paidModeEnabled()){
   const geminiVoice=process.env.GEMINI_TTS_VOICE||"Kore";
-  const wav=await generateFreeVoiceover({text,voice:geminiVoice,output});
-  await fs.writeFile(output,wav);
-  return {ok:true,output,voice:geminiVoice,model:FREE_GEMINI_TTS_MODEL,provider:"gemini_free"};
+  const freeOutput=output.replace(/\.mp3$/i,".wav");
+  await fs.mkdir(path.dirname(freeOutput),{recursive:true});
+  const wav=await generateFreeVoiceover({text,voice:geminiVoice,output:freeOutput});
+  await fs.writeFile(freeOutput,wav);
+  return {ok:true,output:freeOutput,voice:geminiVoice,model:FREE_GEMINI_TTS_MODEL,provider:"gemini_free"};
  }
 
+ await fs.mkdir(path.dirname(output),{recursive:true});
  requirePaidGeneration("OpenAI voice generation");
  if(!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured.");
  const response=await getClient().audio.speech.create({model:process.env.TTS_MODEL||"gpt-4o-mini-tts",voice,input:text,instructions:"Natural, warm Dutch narration for a professional YouTube video.",response_format:"mp3"});
