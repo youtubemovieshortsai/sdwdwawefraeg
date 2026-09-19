@@ -117,11 +117,11 @@ The existing `OPENAI_API_KEY` and `GEMINI_API_KEY` GitHub secrets are reused; th
 
 After that, run **Deploy AI Video Studio to Cloud Run** from GitHub Actions. Pushes to `main` also deploy automatically.
 
-The deployment uses Secret Manager rather than putting API keys in Cloud Run environment variables. Cloud Run's documented recommendation is to keep sensitive values such as API keys in Secret Manager. citeturn1search0turn1search1
+The deployment uses Secret Manager rather than putting API keys in Cloud Run environment variables. Cloud Run's documented recommendation is to keep sensitive values such as API keys in Secret Manager.
 
 ### Cloud Run storage note
 
-Cloud Run's writable filesystem is ephemeral/in-memory and is lost when an instance stops. The current application therefore remains a deployment/demo architecture until rendered media and persistent project/job state are moved to durable storage such as Cloud Storage and a database. citeturn4search0turn4search1
+Cloud Run's writable filesystem is ephemeral/in-memory and is lost when an instance stops. The current application therefore remains a deployment/demo architecture until rendered media and persistent project/job state are moved to durable storage such as Cloud Storage and a database.
 
 For a real public production deployment, also configure:
 
@@ -132,7 +132,7 @@ For a real public production deployment, also configure:
 - HTTPS and a custom domain,
 - a durable worker/queue architecture for long video generations.
 
-Cloud Run supports source deployment with a Dockerfile, and Google documents Workload Identity Federation for GitHub Actions so deployment can use short-lived credentials instead of a long-lived service-account key. citeturn2search0turn3search0
+Cloud Run supports source deployment with a Dockerfile, and Google documents Workload Identity Federation for GitHub Actions so deployment can use short-lived credentials instead of a long-lived service-account key.
 
 The codebase is deliberately structured so these infrastructure pieces can be added without changing the creative planning contracts.
 
