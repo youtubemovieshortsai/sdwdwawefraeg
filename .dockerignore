@@ -1,0 +1,9 @@
+node_modules
+.git
+.github
+.env
+projects
+renders
+jobs
+*.log
+.DS_Store
