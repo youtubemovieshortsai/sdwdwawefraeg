@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="FORGE — moderne performance gear voor dagelijks bewegen.">
+  <title>FORGE — Move your way</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="announcement">Gratis verzending vanaf €75 · 30 dagen retourneren</div>
+  <header class="site-header">
+    <a class="brand" href="#" aria-label="FORGE home">FORGE<span>®</span></a>
+    <nav aria-label="Hoofdnavigatie">
+      <a href="#new">Nieuw</a><a href="#men">Heren</a><a href="#women">Dames</a><a href="#training">Training</a><a href="#stories">Stories</a>
+    </nav>
+    <div class="header-actions">
+      <button aria-label="Zoeken" class="icon-btn" data-action="search">⌕</button>
+      <button aria-label="Account" class="icon-btn">♙</button>
+      <button aria-label="Winkelmand" class="icon-btn bag" data-action="bag">▢<b id="bag-count">0</b></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">SS26 / PERFORMANCE EDIT</p>
+        <h1>MOVE<br><em>YOUR</em> WAY.</h1>
+        <p class="hero-text">Technische essentials met een rustige, eigen uitstraling. Ontworpen voor training, onderweg en alles daartussen.</p>
+        <div class="hero-buttons"><a class="btn btn-dark" href="#new">Shop collectie</a><a class="btn btn-light" href="#stories">Ontdek het verhaal</a></div>
+      </div>
+      <div class="hero-art" aria-label="Abstract sportbeeld">
+        <div class="sun"></div><div class="runner"></div><div class="ground"></div><span>FORGE / 01</span>
+      </div>
+    </section>
+
+    <section class="ticker"><div>ENGINEERED TO MOVE</div><div>BUILT FOR EVERYDAY</div><div>DESIGNED IN AMSTERDAM</div><div>ENGINEERED TO MOVE</div></section>
+
+    <section id="new" class="products section">
+      <div class="section-head"><div><p class="eyebrow">JUST DROPPED</p><h2>New movement</h2></div><a href="#">Bekijk alles →</a></div>
+      <div class="product-grid">
+        <article class="product-card"><div class="product-image image-one"><span>01</span><button data-add="Core Runner">+</button></div><div class="product-info"><div><h3>Core Runner</h3><p>Lightweight road trainer</p></div><strong>€145</strong></div></article>
+        <article class="product-card"><div class="product-image image-two"><span>02</span><button data-add="Axis Knit">+</button></div><div class="product-info"><div><h3>Axis Knit</h3><p>Breathable training shoe</p></div><strong>€125</strong></div></article>
+        <article class="product-card"><div class="product-image image-three"><span>03</span><button data-add="Motion Shell">+</button></div><div class="product-info"><div><h3>Motion Shell</h3><p>Weather-ready outer layer</p></div><strong>€180</strong></div></article>
+      </div>
+    </section>
+
+    <section id="training" class="feature section">
+      <div class="feature-art"><div class="circle"></div><div class="shape shape-a"></div><div class="shape shape-b"></div><strong>F / 26</strong></div>
+      <div class="feature-copy"><p class="eyebrow">THE EVERYDAY SYSTEM</p><h2>Less noise.<br>More motion.</h2><p>Een compacte garderobe van performance layers die samenwerken. Eén systeem, van eerste kilometer tot laatste meeting.</p><a class="text-link" href="#">Bekijk het systeem <span>↗</span></a></div>
+    </section>
+
+    <section id="stories" class="story">
+      <div><p class="eyebrow">FORGE JOURNAL</p><h2>Built around<br>real movement.</h2></div>
+      <p>Van ochtendruns tot lange fietstochten: we maken spullen die niet vragen om aandacht, maar wel blijven presteren.</p>
+      <a class="btn btn-light" href="#">Lees de stories</a>
+    </section>
+  </main>
+
+  <footer><div class="footer-brand">FORGE<span>®</span></div><div><h4>Shop</h4><a>Nieuw</a><a>Heren</a><a>Dames</a><a>Training</a></div><div><h4>Help</h4><a>Contact</a><a>Verzending</a><a>Retouren</a><a>Maatgids</a></div><div><h4>Volg ons</h4><a>Instagram</a><a>Strava</a><a>YouTube</a></div><div class="copyright">© 2026 FORGE. Independent concept brand.</div></footer>
+  <div class="toast" id="toast">Toegevoegd aan je tas</div>
+  <script src="app.js"></script>
+</body>
+</html>
