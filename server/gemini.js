@@ -18,6 +18,17 @@ async function callGemini(body){
   return data;
 }
 
+function outputText(data){
+  if(typeof data?.output_text==="string") return data.output_text;
+  const steps=Array.isArray(data?.steps)?data.steps:[];
+  return steps
+    .filter(step=>step?.type==="model_output")
+    .flatMap(step=>Array.isArray(step?.content)?step.content:[])
+    .filter(item=>item?.type==="text" && typeof item?.text==="string")
+    .map(item=>item.text)
+    .join("");
+}
+
 function configuredFreeTextModel(){
   const model=process.env.GEMINI_FREE_MODEL||TEXT_MODEL;
   if(model!==TEXT_MODEL) throw new Error("Safe Free Mode only permits Gemini 3.1 Flash-Lite. No paid Gemini model was called.");
@@ -37,7 +48,7 @@ export async function generateFreePlan({brief,instructions,schema}){
     response_format:{type:"text",mime_type:"application/json",schema},
     generation_config:{thinking_level:"minimal"}
   });
-  const text=data?.output_text;
+  const text=outputText(data);
   if(!text) throw new Error("Gemini returned no structured plan.");
   return JSON.parse(text);
 }
@@ -50,7 +61,7 @@ export async function generateFreeChat({messages,instructions}){
     response_format:{type:"text",mime_type:"text/plain"},
     generation_config:{thinking_level:"minimal"}
   });
-  return {text:data?.output_text||""};
+  return {text:outputText(data)||""};
 }
 
 function pcmToWav(pcm,sampleRate=24000,channels=1,bits=16){
