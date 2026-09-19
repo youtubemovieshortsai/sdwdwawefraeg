@@ -91,7 +91,7 @@ export async function generateFreeVoiceover({text,voice="Kore",output}){
     response_format:{type:"audio"},
     generation_config:{speech_config:[{voice}]}
   });
-  const encoded=data?.output_audio?.data;
+  const encoded=data?.output_audio?.data||data?.steps?.flatMap(step=>Array.isArray(step?.content)?step.content:[]).find(item=>item?.type==="audio" && typeof item?.data==="string")?.data;
   if(!encoded) throw new Error("Gemini TTS returned no audio.");
   const audio=Buffer.from(encoded,"base64");
   return audio.subarray(0,4).toString("ascii")==="RIFF"?audio:pcmToWav(audio);
