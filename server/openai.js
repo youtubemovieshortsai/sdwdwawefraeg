@@ -1,7 +1,8 @@
 import OpenAI from "openai";
 import { getOutputFormat } from "./formats.js";
 
-const client=new OpenAI({apiKey:process.env.OPENAI_API_KEY});
+let client=null;
+function getClient(){if(!client)client=new OpenAI({apiKey:process.env.OPENAI_API_KEY});return client;}
 
 const baseSystem=`You are the Creative Director for a professional AI video studio.
 Turn a user's idea into a production-ready plan for the exact requested output format.
@@ -23,7 +24,7 @@ const sceneSchema={
 
 export async function chat(messages){
  if(!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured.");
- const response=await client.responses.create({
+ const response=await getClient().responses.create({
   model:process.env.OPENAI_MODEL||"gpt-5.6",
   instructions:baseSystem,
   input:messages.map(m=>({role:m.role||"user",content:String(m.content||"")}))
@@ -59,7 +60,7 @@ Requested format: ${format.label} — ${format.width}x${format.height} — ${for
 Purpose: ${format.purpose}.
 This is ${isThumbnail?"a thumbnail: duration_seconds must be 0, scenes must be an empty array, and thumbnail_prompt/thumbnail_text/composition are the main deliverables.":"a video: duration_seconds should normally be 45-60, scenes must cover the timeline, and thumbnail fields may be empty strings."}
 Return data matching the supplied JSON schema exactly. Keep all dimensions equal to the requested format.`;
- const response=await client.responses.create({
+ const response=await getClient().responses.create({
   model:process.env.OPENAI_MODEL||"gpt-5.6",
   instructions,
   input:brief,
