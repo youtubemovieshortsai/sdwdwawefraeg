@@ -11,7 +11,8 @@ h1{font-size:34px;margin:0 0 8px}.muted{color:#9da2ad}.badge{border:1px solid #3
 label{display:block;font-size:13px;font-weight:700;color:#b9bec8;margin:0 0 8px}
 textarea,select{width:100%;background:#0a0c10;color:#fff;border:1px solid #303541;border-radius:12px;padding:12px;font:inherit}textarea{resize:vertical;min-height:180px}
 select{height:46px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}button{border:0;border-radius:11px;padding:12px 14px;font-weight:800;cursor:pointer;background:#f5f5f5;color:#0a0b0e}button.secondary{background:#20232c;color:#fff;border:1px solid #353946}button.primary{grid-column:1/-1}
-.status{margin-top:14px;padding:10px 12px;border-radius:10px;background:#0b0d12;color:#aeb4c0;font-size:14px}
+button:disabled{opacity:.5;cursor:not-allowed}.status{margin-top:14px;padding:10px 12px;border-radius:10px;background:#0b0d12;color:#aeb4c0;font-size:14px}
+.progress{height:6px;background:#20232c;border-radius:99px;overflow:hidden;margin-top:10px}.progress>i{display:block;height:100%;width:0%;background:#f5f5f5;transition:width .3s}
 .tabs{display:flex;gap:8px;margin-bottom:14px}.tab{background:#1b1e26;color:#bfc4ce;border:1px solid #30343e}.tab.active{background:#fff;color:#111}
 pre{white-space:pre-wrap;word-break:break-word;max-height:560px;overflow:auto;background:#090b0f;border:1px solid #242832;border-radius:12px;padding:14px;font-size:12px}
 .preview{margin-top:14px;display:none}.preview video,.preview img{width:100%;border-radius:14px;border:1px solid #2a2e38;max-height:560px;object-fit:contain;background:#050608}
@@ -32,11 +33,11 @@ pre{white-space:pre-wrap;word-break:break-word;max-height:560px;overflow:auto;ba
 <br><br><label for="brief">Creative brief</label>
 <textarea id="brief" placeholder="Beschrijf onderwerp, doelgroep, stijl, verhaal, personages en gewenste tone of voice. De AI maakt hier een volledige productie van."></textarea>
 <div class="actions">
-<button class="primary" onclick="produce()">Create & render</button>
+<button id="produceBtn" class="primary" onclick="produce()">Create & render</button>
 <button class="secondary" onclick="plan()">Plan only</button>
 <button class="secondary" onclick="save()">Save project</button>
 </div>
-<div id="status" class="status">Ready.</div>
+<div id="status" class="status">Ready.</div><div class="progress"><i id="progress"></i></div>
 </section>
 <section class="card">
 <div class="tabs"><button class="tab active" onclick="showTab('result',this)">Result</button><button class="tab" onclick="showTab('plan',this)">Production plan</button><button class="tab" onclick="showTab('storyboard',this)">Storyboard</button></div>
@@ -45,15 +46,34 @@ pre{white-space:pre-wrap;word-break:break-word;max-height:560px;overflow:auto;ba
 </section>
 </div></main>
 <script>
-let current=null;
+let current=null,activeJob=null,pollTimer=null;
 const $=s=>document.querySelector(s);
 async function api(url,body){const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});const x=await r.json();if(!r.ok)throw new Error(x.error||"Request failed");return x;}
 function setStatus(x){$("#status").textContent=x;}
+function setProgress(n){$("#progress").style.width=Math.max(0,Math.min(100,n))+"%";}
 function showTab(name,button){["result","plan","storyboard"].forEach(x=>$("#"+x).style.display=x===name?"block":"none");document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));button.classList.add("active");}
-async function health(){try{const r=await fetch("/api/health");const x=await r.json();$("#health").textContent=x.ok?"Studio online · "+(x.video_model||x.provider):"Studio offline";}catch{$("#health").textContent="Studio offline";}}
-async function plan(){try{setStatus("Creating production plan…");current=await api("/api/plan",{brief:$("#brief").value,format_id:$("#format").value});$("#plan").textContent=JSON.stringify(current,null,2);$("#storyboard").textContent=JSON.stringify(current.scenes||[],null,2);showTab("plan",document.querySelectorAll(".tab")[1]);setStatus("Plan ready.");}catch(e){setStatus("Error: "+e.message);}}
-async function produce(){try{if(!$("#brief").value.trim())throw new Error("Add a creative brief first.");setStatus("Generating scenes, video and audio. This can take several minutes…");const x=await api("/api/production-pipeline",{brief:$("#brief").value,format_id:$("#format").value});current=x.plan;$("#plan").textContent=JSON.stringify(x.plan,null,2);$("#storyboard").textContent=JSON.stringify(x.storyboard||[],null,2);renderResult(x);setStatus("Production complete.");}catch(e){setStatus("Production error: "+e.message);}}
-function renderResult(x){$("#empty").style.display="none";$("#links").innerHTML="";$("#preview").style.display="block";const p=x.rendered?.output;if(!p)return;const url="/"+p.replace(/^\\//,"");if(x.format.id.includes("thumbnail")){$("#preview").innerHTML='<img src="'+url+'" alt="Generated thumbnail">';}else{$("#preview").innerHTML='<video controls playsinline src="'+url+'"></video>';}const a=document.createElement("a");a.href=url;a.target="_blank";a.textContent="Open output";$("#links").appendChild(a);}
+async function health(){try{const r=await fetch("/api/health");const x=await r.json();$("#health").textContent=x.ok?"Studio online · "+(x.openai_configured?"OpenAI ✓":"OpenAI —")+" · "+(x.gemini_configured?"Gemini ✓":"Gemini —"):"Studio offline";}catch{$("#health").textContent="Studio offline";}}
+async function plan(){try{setStatus("Creating production plan…");setProgress(20);current=await api("/api/plan",{brief:$("#brief").value,format_id:$("#format").value});$("#plan").textContent=JSON.stringify(current,null,2);$("#storyboard").textContent=JSON.stringify(current.scenes||[],null,2);showTab("plan",document.querySelectorAll(".tab")[1]);setProgress(100);setStatus("Plan ready.");}catch(e){setProgress(0);setStatus("Error: "+e.message);}}
+async function produce(){
+ try{
+  if(!$("#brief").value.trim())throw new Error("Add a creative brief first.");
+  $("#produceBtn").disabled=true;setProgress(5);setStatus("Starting production job…");
+  const job=await api("/api/production-jobs",{brief:$("#brief").value,format_id:$("#format").value});
+  activeJob=job.id;await pollJob();
+ }catch(e){setProgress(0);setStatus("Production error: "+e.message);$("#produceBtn").disabled=false;}
+}
+async function pollJob(){
+ clearTimeout(pollTimer);
+ const r=await fetch("/api/production-jobs/"+activeJob),job=await r.json();
+ if(!r.ok)throw new Error(job.error||"Could not read production job");
+ if(job.status==="queued"){setProgress(8);setStatus("Job queued…");return pollTimer=setTimeout(pollJob,1500);}
+ if(job.status==="running"){setProgress(45);setStatus("Generating scenes, video and audio…");return pollTimer=setTimeout(pollJob,3000);}
+ if(job.status==="failed"){setProgress(0);setStatus("Production error: "+(job.error||"Unknown error"));$("#produceBtn").disabled=false;return;}
+ if(job.status==="completed"){
+  setProgress(100);const x=job.result;current=x.plan;$("#plan").textContent=JSON.stringify(x.plan,null,2);$("#storyboard").textContent=JSON.stringify(x.storyboard||[],null,2);renderResult(x);setStatus("Production complete.");$("#produceBtn").disabled=false;
+ }
+}
+function renderResult(x){$("#empty").style.display="none";$("#links").innerHTML="";$("#preview").style.display="block";const p=x.rendered?.output;if(!p)return;const url="/"+p.replace(/^\//,"");if(x.format.id.includes("thumbnail")){$("#preview").innerHTML='<img src="'+url+'" alt="Generated thumbnail">';}else{$("#preview").innerHTML='<video controls playsinline src="'+url+'"></video>';}const a=document.createElement("a");a.href=url;a.target="_blank";a.textContent="Open output";$("#links").appendChild(a);if(x.subtitles?.output){const s=document.createElement("a");s.href="/"+x.subtitles.output.replace(/^\//,"");s.target="_blank";s.textContent="Open subtitles (.srt)";$("#links").appendChild(s);}}
 async function save(){try{if(!current)await plan();const x=await api("/api/projects",{plan:current,brief:$("#brief").value,format_id:$("#format").value});setStatus("Project saved: "+x.id);}catch(e){setStatus("Save error: "+e.message);}}
 health();
 </script></body></html>
