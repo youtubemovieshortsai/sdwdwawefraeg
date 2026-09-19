@@ -86,16 +86,53 @@ Generated media is served under /renders.
 
 ## Deployment
 
-The application is container-ready for a managed Node/FFmpeg runtime such as Google Cloud Run. Cloud Run can deploy a Node web service from source or a container, but its default writable filesystem is disposable; production media and project data should therefore be copied to or backed by durable object storage/database storage before treating the service as a multi-instance permanent asset store.
+The prepared Google Cloud target is:
 
-For a real public production deployment, configure:
+- Project ID: **ai-video-studio-509112**
+- Region: **europe-west4**
+- Cloud Run service: **ai-video-studio**
+- Runtime service account: **ai-video-studio-runtime**
+- GitHub repository: **youtubemovieshortsai/sdwdwawefraeg**
 
-- a container service,
+The repository contains:
+
+- `.github/workflows/deploy-cloud-run.yml` — secure GitHub Actions deployment.
+- `scripts/setup-gcp-cloud-run.sh` — one-time Google Cloud bootstrap for Workload Identity Federation, service accounts and Secret Manager.
+- `.gcloudignore` — source deployment exclusions.
+
+### One-time Google Cloud setup
+
+Open Google Cloud Shell while the **ai-video-studio-509112** project is selected, then run the bootstrap script from the repository:
+
+~~~bash
+bash scripts/setup-gcp-cloud-run.sh
+~~~
+
+The script creates the deployment identity, runtime identity, Secret Manager entries and GitHub OIDC federation. It prints two values that must be added as GitHub Actions repository secrets:
+
+- `WIF_PROVIDER`
+- `WIF_SERVICE_ACCOUNT`
+
+The existing `OPENAI_API_KEY` and `GEMINI_API_KEY` GitHub secrets are reused; their values are synchronized into Google Secret Manager during deployment.
+
+After that, run **Deploy AI Video Studio to Cloud Run** from GitHub Actions. Pushes to `main` also deploy automatically.
+
+The deployment uses Secret Manager rather than putting API keys in Cloud Run environment variables. Cloud Run's documented recommendation is to keep sensitive values such as API keys in Secret Manager. citeturn1search0turn1search1
+
+### Cloud Run storage note
+
+Cloud Run's writable filesystem is ephemeral/in-memory and is lost when an instance stops. The current application therefore remains a deployment/demo architecture until rendered media and persistent project/job state are moved to durable storage such as Cloud Storage and a database. citeturn4search0turn4search1
+
+For a real public production deployment, also configure:
+
 - durable object storage for rendered MP4/PNG/SRT assets,
 - durable database storage for projects/jobs,
 - authenticated access and rate limiting,
 - provider/API spending limits,
-- HTTPS and a custom domain.
+- HTTPS and a custom domain,
+- a durable worker/queue architecture for long video generations.
+
+Cloud Run supports source deployment with a Dockerfile, and Google documents Workload Identity Federation for GitHub Actions so deployment can use short-lived credentials instead of a long-lived service-account key. citeturn2search0turn3search0
 
 The codebase is deliberately structured so these infrastructure pieces can be added without changing the creative planning contracts.
 
