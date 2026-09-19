@@ -1,25 +1,59 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Video Studio</title><style>
-body{margin:0;font-family:system-ui,sans-serif;background:#101114;color:#f5f5f5}main{max-width:1100px;margin:auto;padding:28px}
-textarea{width:100%;box-sizing:border-box;background:#191b20;color:#fff;border:1px solid #343740;border-radius:10px;padding:12px}
-button{background:#fff;color:#111;border:0;border-radius:9px;padding:11px 16px;font-weight:700;cursor:pointer}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card{background:#17191e;border:1px solid #292c34;border-radius:14px;padding:18px}
-pre{white-space:pre-wrap;max-height:600px;overflow:auto}@media(max-width:800px){.grid{grid-template-columns:1fr}}
-</style></head><body><main><h1>AI Video Studio</h1>
-<p>YouTube workflows: 1920×1080 (16:9), 1280×720 thumbnails, 1080×1920 Shorts en 1080×1920 Shorts thumbnails.</p>
-<div class="grid"><section class="card"><h2>Brief</h2><label>Output formaat</label><select id="format"><option value="youtube_landscape">YouTube video — 1920×1080 — 16:9</option><option value="youtube_thumbnail">YouTube thumbnail — 1280×720 — 16:9</option><option value="shorts">YouTube Shorts — 1080×1920 — 9:16</option><option value="shorts_thumbnail">Shorts thumbnail — 1080×1920 — 9:16</option></select><br><br>
-<textarea id="brief" rows="12" placeholder="Describe the video you want to make..."></textarea><br><br>
-<button onclick="plan()">Create production plan</button> <button onclick="runPipeline()">Run production pipeline</button> <button onclick="save()">Save project</button>
-<p id="status"></p></section><section class="card"><h2>Production plan</h2><pre id="plan">{}</pre><h3>Pipeline</h3><pre id="pipeline">{}</pre></section></div>
-</main><script>
+<!doctype html>
+<html lang="nl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Video Studio</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f7f7f8;background:#090a0d}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#1d2030 0,#090a0d 42%);min-height:100vh}
+main{max-width:1280px;margin:auto;padding:32px}.top{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:24px}
+h1{font-size:34px;margin:0 0 8px}.muted{color:#9da2ad}.badge{border:1px solid #343945;border-radius:999px;padding:8px 12px;color:#b8bec9;background:#11131a}
+.grid{display:grid;grid-template-columns:420px 1fr;gap:18px}.card{background:#111319cc;border:1px solid #272b35;border-radius:18px;padding:20px;box-shadow:0 12px 50px #0005}
+label{display:block;font-size:13px;font-weight:700;color:#b9bec8;margin:0 0 8px}
+textarea,select{width:100%;background:#0a0c10;color:#fff;border:1px solid #303541;border-radius:12px;padding:12px;font:inherit}textarea{resize:vertical;min-height:180px}
+select{height:46px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}button{border:0;border-radius:11px;padding:12px 14px;font-weight:800;cursor:pointer;background:#f5f5f5;color:#0a0b0e}button.secondary{background:#20232c;color:#fff;border:1px solid #353946}button.primary{grid-column:1/-1}
+.status{margin-top:14px;padding:10px 12px;border-radius:10px;background:#0b0d12;color:#aeb4c0;font-size:14px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}.tab{background:#1b1e26;color:#bfc4ce;border:1px solid #30343e}.tab.active{background:#fff;color:#111}
+pre{white-space:pre-wrap;word-break:break-word;max-height:560px;overflow:auto;background:#090b0f;border:1px solid #242832;border-radius:12px;padding:14px;font-size:12px}
+.preview{margin-top:14px;display:none}.preview video,.preview img{width:100%;border-radius:14px;border:1px solid #2a2e38;max-height:560px;object-fit:contain;background:#050608}
+.links{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.links a{color:#fff;background:#1b1e26;padding:8px 10px;border-radius:9px;text-decoration:none}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.top{align-items:start;flex-direction:column}}
+</style></head>
+<body><main>
+<div class="top"><div><h1>AI Video Studio</h1><div class="muted">Professional YouTube video, Shorts en thumbnail productie.</div></div><div id="health" class="badge">Checking studio…</div></div>
+<div class="grid">
+<section class="card">
+<label for="format">Output formaat</label>
+<select id="format">
+<option value="youtube_landscape">YouTube video · 1920×1080 · 16:9</option>
+<option value="youtube_thumbnail">YouTube thumbnail · 1280×720 · 16:9</option>
+<option value="shorts">YouTube Shorts · 1080×1920 · 9:16</option>
+<option value="shorts_thumbnail">Shorts thumbnail · 1080×1920 · 9:16</option>
+</select>
+<br><br><label for="brief">Creative brief</label>
+<textarea id="brief" placeholder="Beschrijf onderwerp, doelgroep, stijl, verhaal, personages en gewenste tone of voice. De AI maakt hier een volledige productie van."></textarea>
+<div class="actions">
+<button class="primary" onclick="produce()">Create & render</button>
+<button class="secondary" onclick="plan()">Plan only</button>
+<button class="secondary" onclick="save()">Save project</button>
+</div>
+<div id="status" class="status">Ready.</div>
+</section>
+<section class="card">
+<div class="tabs"><button class="tab active" onclick="showTab('result',this)">Result</button><button class="tab" onclick="showTab('plan',this)">Production plan</button><button class="tab" onclick="showTab('storyboard',this)">Storyboard</button></div>
+<div id="result"><div id="empty" class="muted">Your rendered result will appear here.</div><div id="preview" class="preview"></div><div id="links" class="links"></div></div>
+<pre id="plan" style="display:none">{}</pre><pre id="storyboard" style="display:none">{}</pre>
+</section>
+</div></main>
+<script>
 let current=null;
-async function plan(){const brief=document.querySelector("#brief").value;const format_id=document.querySelector("#format").value;document.querySelector("#status").textContent="Planning...";
-const r=await fetch("/api/plan",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({brief,format_id})});
-current=await r.json();document.querySelector("#plan").textContent=JSON.stringify(current,null,2);
-document.querySelector("#status").textContent=r.ok?"Plan ready":"Error: "+(current.error||"unknown");}
-async function runPipeline(){const brief=document.querySelector("#brief").value;const format_id=document.querySelector("#format").value;document.querySelector("#status").textContent="Building pipeline...";
-const r=await fetch("/api/production-pipeline",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({brief,format_id})});
-const x=await r.json();document.querySelector("#pipeline").textContent=JSON.stringify(x,null,2);document.querySelector("#status").textContent=r.ok?"Pipeline ready":"Error: "+(x.error||"unknown");if(r.ok){current=x.plan;document.querySelector("#plan").textContent=JSON.stringify(x.plan,null,2);}}
-async function save(){if(!current)return;const r=await fetch("/api/projects",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({plan:current,brief:document.querySelector("#brief").value,format_id:document.querySelector("#format").value})});
-const x=await r.json();document.querySelector("#status").textContent=r.ok?"Saved project "+x.id:"Error: "+x.error;}
+const $=s=>document.querySelector(s);
+async function api(url,body){const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});const x=await r.json();if(!r.ok)throw new Error(x.error||"Request failed");return x;}
+function setStatus(x){$("#status").textContent=x;}
+function showTab(name,button){["result","plan","storyboard"].forEach(x=>$("#"+x).style.display=x===name?"block":"none");document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));button.classList.add("active");}
+async function health(){try{const r=await fetch("/api/health");const x=await r.json();$("#health").textContent=x.ok?"Studio online · "+(x.video_model||x.provider):"Studio offline";}catch{$("#health").textContent="Studio offline";}}
+async function plan(){try{setStatus("Creating production plan…");current=await api("/api/plan",{brief:$("#brief").value,format_id:$("#format").value});$("#plan").textContent=JSON.stringify(current,null,2);$("#storyboard").textContent=JSON.stringify(current.scenes||[],null,2);showTab("plan",document.querySelectorAll(".tab")[1]);setStatus("Plan ready.");}catch(e){setStatus("Error: "+e.message);}}
+async function produce(){try{if(!$("#brief").value.trim())throw new Error("Add a creative brief first.");setStatus("Generating scenes, video and audio. This can take several minutes…");const x=await api("/api/production-pipeline",{brief:$("#brief").value,format_id:$("#format").value});current=x.plan;$("#plan").textContent=JSON.stringify(x.plan,null,2);$("#storyboard").textContent=JSON.stringify(x.storyboard||[],null,2);renderResult(x);setStatus("Production complete.");}catch(e){setStatus("Production error: "+e.message);}}
+function renderResult(x){$("#empty").style.display="none";$("#links").innerHTML="";$("#preview").style.display="block";const p=x.rendered?.output;if(!p)return;const url="/"+p.replace(/^\\//,"");if(x.format.id.includes("thumbnail")){$("#preview").innerHTML='<img src="'+url+'" alt="Generated thumbnail">';}else{$("#preview").innerHTML='<video controls playsinline src="'+url+'"></video>';}const a=document.createElement("a");a.href=url;a.target="_blank";a.textContent="Open output";$("#links").appendChild(a);}
+async function save(){try{if(!current)await plan();const x=await api("/api/projects",{plan:current,brief:$("#brief").value,format_id:$("#format").value});setStatus("Project saved: "+x.id);}catch(e){setStatus("Save error: "+e.message);}}
+health();
 </script></body></html>
