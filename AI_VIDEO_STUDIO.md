@@ -26,3 +26,18 @@ The studio uses OpenAI for creative planning and keeps video generation behind a
 - minimal browser UI
 
 Next production steps: add authenticated project storage, a real video-provider adapter, TTS, caption rendering, asset/character bible, background music/SFX mixing, FFmpeg assembly, job queue and progress events.
+
+
+## Production pipeline
+
+The studio now supports an end-to-end local pipeline:
+
+1. Generate a format-aware production plan with OpenAI Structured Outputs.
+2. Normalize the plan into a storyboard.
+3. Optionally generate Dutch voiceover with OpenAI TTS.
+4. Create clip jobs through the provider abstraction.
+5. Assemble supplied video clips with FFmpeg at the exact selected canvas size.
+6. Render supplied thumbnail images to the exact PNG dimensions.
+7. Run automated format/render/pipeline tests through GitHub Actions.
+
+The local provider is intentionally deterministic: it creates clip jobs and accepts imported/generated clip files for final assembly. A production video-generation provider can be connected without changing the planning or render contracts.
