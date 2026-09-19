@@ -57,7 +57,11 @@ async function generateVeoClip(input={}){
 export function getVideoProvider(){
  const name=(process.env.VIDEO_PROVIDER||"local").toLowerCase();
  if(name==="google_veo"||name==="veo")return{async generateClip(input={}){return generateVeoClip(input);},async getJob(id){return jobs.get(id)||null;}};
- if(name==="local"||name==="stub")return{async generateClip(input={}){\n  const job=clipJob(input,{status:"running",provider:"local_free"});\n  try{const generated=await generateFreeVisualClip(input);Object.assign(job,generated,{status:"completed",completed_at:new Date().toISOString()});return {...job};}\n  catch(error){job.status="failed";job.error=error.message;throw error;}\n },async getJob(id){return jobs.get(id)||null;}};
+ if(name==="local"||name==="stub")return{async generateClip(input={}) {
+  const job=clipJob(input,{status:"running",provider:"local_free"});
+  try{const generated=await generateFreeVisualClip(input);Object.assign(job,generated,{status:"completed",completed_at:new Date().toISOString()});return {...job};}
+  catch(error){job.status="failed";job.error=error.message;throw error;}
+},async getJob(id){return jobs.get(id)||null;}};
  throw new Error("Unknown VIDEO_PROVIDER: "+name);
 }
 
