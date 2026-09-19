@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { runFfmpeg } from "../ffmpeg.js";
+import { requirePaidGeneration } from "../billing.js";
 
 const jobs=new Map();
 
@@ -17,6 +18,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const concatPath=file=>path.resolve(file).replace(/\\/g,"/").replace(/'/g,"'\\''");
 
 async function googleRequest(url,options={}){
+ requirePaidGeneration("Gemini Veo generation");
  const key=process.env.GEMINI_API_KEY;if(!key)throw new Error("GEMINI_API_KEY is not configured.");
  const response=await fetch(url,{...options,headers:{"x-goog-api-key":key,"content-type":"application/json",...(options.headers||{})}});
  const text=await response.text();let data={};try{data=text?JSON.parse(text):{};}catch{data={raw:text};}
@@ -24,6 +26,7 @@ async function googleRequest(url,options={}){
 }
 
 async function generateVeoClip(input={}){
+ requirePaidGeneration("Veo cinematic video generation");
  const format=input.format||{},aspectRatio=format.aspect_ratio||"16:9",model=getVeoModel();
  const prompt=["Professional cinematic YouTube footage.","Aspect ratio "+aspectRatio+".","Keep characters, wardrobe, environment and visual style consistent.",input.scene?.visual_prompt||"",input.scene?.action||"",input.scene?.continuity?"Continuity: "+input.scene.continuity:"",input.scene?.dialogue?"Dialogue/audio cue: "+input.scene.dialogue:"",input.scene?.sfx?.length?"Sound effects: "+input.scene.sfx.join(", "):"",input.scene?.music?"Music: "+input.scene.music:""].filter(Boolean).join("\n");
  const data=await googleRequest(getVeoGenerateUrl(model),{method:"POST",body:JSON.stringify({instances:[{prompt}],parameters:{aspectRatio,resolution:process.env.VEO_RESOLUTION||"720p",numberOfVideos:1}})});
