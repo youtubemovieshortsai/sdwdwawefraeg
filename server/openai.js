@@ -15,7 +15,7 @@ export async function chat(messages){
  });
  return {text:response.output_text||""};
 }
-export async function createPlan(brief){
+export async function createPlan(brief, formatId="youtube_landscape"){
  if(!brief.trim()) throw new Error("brief is required");
  if(!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured.");
  const response=await client.responses.create({
@@ -24,7 +24,7 @@ export async function createPlan(brief){
 {"title":"","duration_seconds":50,"format":{"width":1080,"height":1920,"aspect_ratio":"9:16"},
 "hook":"","characters":[],"scenes":[{"id":"","start":0,"end":5,"visual_prompt":"","action":"",
 "dialogue":"","caption":"","sfx":[],"music":"","continuity":""}],"qc":[]}`,
-  input:brief
+  input:`Target output format: ${formatId}\n${brief}`
  });
  const raw=response.output_text||"{}";
  try{return JSON.parse(raw.replace(/^\`\`\`json\s*|\s*\`\`\`$/g,""));}
