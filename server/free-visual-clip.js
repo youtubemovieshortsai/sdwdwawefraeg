@@ -62,11 +62,8 @@ export async function generateFreeVisualClip({scene={},format={},output,duration
  await fs.mkdir(workDir,{recursive:true});
  const finalOutput=output||path.join(workDir,"clip.mp4");
  const captionFile=path.join(workDir,"caption-"+randomUUID()+".txt");
- const promptFile=path.join(workDir,"prompt-"+randomUUID()+".txt");
  const caption=String(scene.caption||scene.dialogue||"").trim().replace(/\s+/g," ").slice(0,140);
- const prompt=String(scene.visual_prompt||"").trim().replace(/\s+/g," ").slice(0,180);
  await fs.writeFile(captionFile,caption);
- await fs.writeFile(promptFile,prompt);
 
  const palette=["0x101827","0x172033","0x0b1320","0x1a1424","0x101c19"];
  const base=palette[Math.abs(String(scene.id||"1").split("").reduce((a,c)=>a+c.charCodeAt(0),0))%palette.length];
@@ -77,7 +74,6 @@ export async function generateFreeVisualClip({scene={},format={},output,duration
   "fade=t=in:st=0:d=0.35",
   "fade=t=out:st="+Math.max(0,seconds-0.45)+":d=0.45",
   "drawtext=fontfile="+FONT_BOLD+":textfile="+escFile(captionFile)+":fontsize='min(w,h)*0.052':fontcolor='white@0.96':shadowcolor='black@0.8':shadowx=3:shadowy=3:x='(w-text_w)/2':y='h*0.78':enable='gt(t,0.18)'",
-  "drawtext=fontfile="+FONT_FILE+":textfile="+escFile(promptFile)+":fontsize='min(w,h)*0.022':fontcolor='white@0.55':x='(w-text_w)/2':y='h*0.84':enable='gt(t,0.5)'"
  ].join(",");
 
  await runFfmpeg([
@@ -95,6 +91,5 @@ export async function generateFreeVisualClip({scene={},format={},output,duration
   finalOutput
  ]);
  await fs.rm(captionFile,{force:true});
- await fs.rm(promptFile,{force:true});
  return {ok:true,provider:"local_free",output:finalOutput,width,height,fps,duration:seconds,visual_packs:ids};
 }
