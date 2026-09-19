@@ -37,7 +37,7 @@ pre{white-space:pre-wrap;word-break:break-word;max-height:560px;overflow:auto;ba
 <button class="secondary" onclick="plan()">Plan only</button>
 <button class="secondary" onclick="save()">Save project</button>
 </div>
-<div id="status" class="status">Ready.</div><div class="progress"><i id="progress"></i></div>
+<div id="status" class="status">Safe Free Mode — geen betaalde AI-generatie.</div><div class="progress"><i id="progress"></i></div>
 </section>
 <section class="card">
 <div class="tabs"><button class="tab active" onclick="showTab('result',this)">Result</button><button class="tab" onclick="showTab('plan',this)">Production plan</button><button class="tab" onclick="showTab('storyboard',this)">Storyboard</button></div>
@@ -52,7 +52,7 @@ async function api(url,body){const r=await fetch(url,{method:"POST",headers:{"co
 function setStatus(x){$("#status").textContent=x;}
 function setProgress(n){$("#progress").style.width=Math.max(0,Math.min(100,n))+"%";}
 function showTab(name,button){["result","plan","storyboard"].forEach(x=>$("#"+x).style.display=x===name?"block":"none");document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));button.classList.add("active");}
-async function health(){try{const r=await fetch("/api/health");const x=await r.json();$("#health").textContent=x.ok?"Studio online · "+(x.openai_configured?"OpenAI ✓":"OpenAI —")+" · "+(x.gemini_configured?"Gemini ✓":"Gemini —"):"Studio offline";}catch{$("#health").textContent="Studio offline";}}
+async function health(){try{const r=await fetch("/api/health");const x=await r.json();$("#health").textContent=x.safe_free_mode?"Studio online · Safe Free Mode":"Studio online · Paid generation enabled";}catch{$("#health").textContent="Studio offline";}}
 async function plan(){try{setStatus("Creating production plan…");setProgress(20);current=await api("/api/plan",{brief:$("#brief").value,format_id:$("#format").value});$("#plan").textContent=JSON.stringify(current,null,2);$("#storyboard").textContent=JSON.stringify(current.scenes||[],null,2);showTab("plan",document.querySelectorAll(".tab")[1]);setProgress(100);setStatus("Plan ready.");}catch(e){setProgress(0);setStatus("Error: "+e.message);}}
 async function produce(){
  try{
