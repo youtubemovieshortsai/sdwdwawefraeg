@@ -88,7 +88,7 @@ export async function generateFreeVoiceover({text,voice="Kore",output}){
   const data=await callGemini({
     model:configuredFreeTtsModel(),
     input:"Speak in natural, warm Dutch for a professional YouTube video. Clear diction, confident pacing, expressive but not exaggerated. Read the following text exactly:\n\n"+text,
-    response_format:{type:"audio",mime_type:"audio/wav",sample_rate:24000},
+    response_format:{type:"audio"},
     generation_config:{speech_config:[{voice}]}
   });
   const encoded=data?.output_audio?.data;
