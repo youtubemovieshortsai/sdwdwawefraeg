@@ -1,0 +1,62 @@
+name: Deploy AI Video Studio to Cloud Run
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: ai-video-studio-509112
+  REGION: europe-west4
+  SERVICE: ai-video-studio
+  RUNTIME_SERVICE_ACCOUNT: ai-video-studio-runtime@ai-video-studio-509112.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: \${{ secrets.WIF_PROVIDER }}
+          service_account: \${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Sync provider secrets to Secret Manager
+        shell: bash
+        env:
+          OPENAI_API_KEY: \${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: \${{ secrets.GEMINI_API_KEY }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$OPENAI_API_KEY" | gcloud secrets versions add openai-api-key --data-file=-
+          printf '%s' "$GEMINI_API_KEY" | gcloud secrets versions add gemini-api-key --data-file=-
+
+      - name: Deploy Cloud Run service
+        run: |
+          set -euo pipefail
+          gcloud run deploy "$SERVICE" \
+            --source . \
+            --project "$PROJECT_ID" \
+            --region "$REGION" \
+            --service-account "$RUNTIME_SERVICE_ACCOUNT" \
+            --allow-unauthenticated \
+            --set-env-vars "VIDEO_PROVIDER=google_veo,VEO_MODEL=veo-3.1-generate-preview,VEO_RESOLUTION=720p,TTS_MODEL=gpt-4o-mini-tts,IMAGE_MODEL=gpt-image-2" \
+            --set-secrets "OPENAI_API_KEY=openai-api-key:latest,GEMINI_API_KEY=gemini-api-key:latest" \
+            --timeout 900
+
+      - name: Show deployed URL
+        run: |
+          gcloud run services describe "$SERVICE" \
+            --project "$PROJECT_ID" \
+            --region "$REGION" \
+            --format='value(status.url)'
