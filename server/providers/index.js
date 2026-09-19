@@ -6,6 +6,7 @@ import { runFfmpeg } from "../ffmpeg.js";
 const jobs=new Map();
 const clipJob=(input={},extra={})=>{const id=randomUUID();const job={id,status:"queued",provider:process.env.VIDEO_PROVIDER||"local",created_at:new Date().toISOString(),input,...extra};jobs.set(id,job);return job;};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const concatPath=file=>path.resolve(file).replace(/\\/g,"/").replace(/'/g,"'\\''");
 
 async function googleRequest(url,options={}){
  const key=process.env.GEMINI_API_KEY;if(!key)throw new Error("GEMINI_API_KEY is not configured.");
@@ -52,7 +53,7 @@ export async function renderThumbnail({input,output,width,height}){
 export async function assembleVideo({clips=[],voiceover,audio,output,width,height,fps=24}){
  if(!clips.length)throw new Error("at least one video clip is required");await fs.mkdir(path.dirname(output),{recursive:true});
  const listFile=path.join(path.dirname(output),".concat-"+randomUUID()+".txt");
- await fs.writeFile(listFile,clips.map(x=>"file '"+path.resolve(x)+"'").join("\n"));
+ await fs.writeFile(listFile,clips.map(x=>"file '"+concatPath(x)+"'").join("\n"));
  const args=["-y","-f","concat","-safe","0","-i",listFile];if(voiceover||audio)args.push("-i",voiceover||audio);
  args.push("-vf","scale="+width+":"+height+":force_original_aspect_ratio=increase,crop="+width+":"+height+",fps="+fps,"-c:v","libx264","-pix_fmt","yuv420p");
  if(voiceover||audio)args.push("-c:a","aac","-b:a","192k","-shortest");else args.push("-an");args.push(output);
