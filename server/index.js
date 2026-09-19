@@ -25,7 +25,10 @@ app.post("/api/projects", async (req,res)=>{try{res.json(await saveProject(req.b
 app.get("/api/projects", async (_req,res)=>{try{res.json(await listProjects());}catch(e){res.status(500).json({error:e.message});}});
 app.get("/api/projects/:id", async (req,res)=>{try{res.json(await loadProject(req.params.id));}catch(e){res.status(404).json({error:e.message});}});
 app.post("/api/render-plan", async (req,res)=>{try{res.json(buildRenderPlan(req.body));}catch(e){res.status(400).json({error:e.message});}});
-app.post("/api/storyboard",(req,res)=>{try{res.json({storyboard:buildStoryboard(req.body?.plan||req.body||{})});}catch(e){res.status(400).json({error:e.message});}});\napp.post("/api/audio/voiceover",async(req,res)=>{try{res.json(await generateVoiceover(req.body||{}));}catch(e){res.status(500).json({error:e.message});}});\napp.post("/api/video/generate", async (req,res)=>{try{res.status(202).json(await getVideoProvider().generateClip(req.body));}catch(e){res.status(500).json({error:e.message});}});
+app.post("/api/storyboard",(req,res)=>{try{res.json({storyboard:buildStoryboard(req.body?.plan||req.body||{})});}catch(e){res.status(400).json({error:e.message});}});
+app.post("/api/audio/voiceover",async(req,res)=>{try{res.json(await generateVoiceover(req.body||{}));}catch(e){res.status(500).json({error:e.message});}});
+app.post("/api/video/generate", async (req,res)=>{try{res.status(202).json(await getVideoProvider().generateClip(req.body));}catch(e){res.status(500).json({error:e.message});}});
+app.post("/api/production-pipeline",async(req,res)=>{try{res.json(await runProductionPipeline(req.body||{}));}catch(e){res.status(500).json({error:e.message});}});
 
 const port=Number(process.env.PORT||3000);
 app.listen(port,()=>console.log(`AI Video Studio running at http://localhost:${port}`));
