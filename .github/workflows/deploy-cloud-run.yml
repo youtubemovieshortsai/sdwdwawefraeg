@@ -38,8 +38,12 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           set -euo pipefail
-          printf '%s' "$OPENAI_API_KEY" | gcloud secrets versions add openai-api-key --data-file=-
-          printf '%s' "$GEMINI_API_KEY" | gcloud secrets versions add gemini-api-key --data-file=-
+          OPENAI_VERSION="$(printf '%s' "$OPENAI_API_KEY" | gcloud secrets versions add openai-api-key --data-file=- --format='value(name)' | awk -F/ '{print $NF}')"
+          GEMINI_VERSION="$(printf '%s' "$GEMINI_API_KEY" | gcloud secrets versions add gemini-api-key --data-file=- --format='value(name)' | awk -F/ '{print $NF}')"
+          {
+            echo "OPENAI_VERSION=$OPENAI_VERSION"
+            echo "GEMINI_VERSION=$GEMINI_VERSION"
+          } >> "$GITHUB_ENV"
 
       - name: Deploy Cloud Run service
         run: |
@@ -51,7 +55,7 @@ jobs:
             --service-account "$RUNTIME_SERVICE_ACCOUNT" \
             --allow-unauthenticated \
             --set-env-vars "VIDEO_PROVIDER=google_veo,VEO_MODEL=veo-3.1-generate-preview,VEO_RESOLUTION=720p,TTS_MODEL=gpt-4o-mini-tts,IMAGE_MODEL=gpt-image-2" \
-            --set-secrets "OPENAI_API_KEY=openai-api-key:latest,GEMINI_API_KEY=gemini-api-key:latest" \
+            --set-secrets "OPENAI_API_KEY=openai-api-key:$OPENAI_VERSION,GEMINI_API_KEY=gemini-api-key:$GEMINI_VERSION" \
             --timeout 900
 
       - name: Show deployed URL
