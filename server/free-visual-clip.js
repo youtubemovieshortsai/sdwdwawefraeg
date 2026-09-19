@@ -29,7 +29,7 @@ function effectFilters(packIds,width,height){
  }
  if(ids.has("nature")){
   f.push("drawbox=x='-0.3*w+0.55*w*sin(t*0.18)':y='-0.1*h':w='0.42*w':h='1.2*h':color='white@0.045':t=fill") ;
-  f.push("drawbox=x='0.72*w+0.35*w*sin(t*0.13+1)':y='-0.15*h':w='0.18*w':h='1.3*h':color='white@0.035':t=fill');
+  f.push("drawbox=x='0.72*w+0.35*w*sin(t*0.13+1)':y='-0.15*h':w='0.18*w':h='1.3*h':color='white@0.035':t=fill");
  }
  if(ids.has("documentary")){
   f.push("drawbox=x='0.055*w':y='0.055*h':w='0.89*w':h='0.89*h':color='white@0.12':t=2");
