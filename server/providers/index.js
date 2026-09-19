@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { runFfmpeg } from "../ffmpeg.js";
 import { requirePaidGeneration } from "../billing.js";
+import { getVisualPacks } from "../visual-packs/index.js";
 
 const jobs=new Map();
 
@@ -28,8 +29,11 @@ async function googleRequest(url,options={}){
 async function generateVeoClip(input={}){
  requirePaidGeneration("Veo cinematic video generation");
  const format=input.format||{},aspectRatio=format.aspect_ratio||"16:9",model=getVeoModel();
- const prompt=["Professional cinematic YouTube footage.","Aspect ratio "+aspectRatio+".","Keep characters, wardrobe, environment and visual style consistent.",input.scene?.visual_prompt||"",input.scene?.action||"",input.scene?.continuity?"Continuity: "+input.scene.continuity:"",input.scene?.dialogue?"Dialogue/audio cue: "+input.scene.dialogue:"",input.scene?.sfx?.length?"Sound effects: "+input.scene.sfx.join(", "):"",input.scene?.music?"Music: "+input.scene.music:""].filter(Boolean).join("\n");
- const data=await googleRequest(getVeoGenerateUrl(model),{method:"POST",body:JSON.stringify({instances:[{prompt}],parameters:{aspectRatio,resolution:process.env.VEO_RESOLUTION||"720p",numberOfVideos:1}})});
+ const visualPackIds=Array.isArray(input.scene?.visual_packs)?input.scene.visual_packs:[];
+  const visualPacks=getVisualPacks(visualPackIds);
+  const visualPackText=visualPacks.map(pack=>pack.label+" visual style; effects: "+pack.effects.join(", ")).join("\n");
+  const prompt=["Professional cinematic YouTube footage.","Aspect ratio "+aspectRatio+".",visualPackText,"Keep characters, wardrobe, environment and visual style consistent.",input.scene?.visual_prompt||"",input.scene?.action||"",input.scene?.continuity?"Continuity: "+input.scene.continuity:"",input.scene?.dialogue?"Dialogue/audio cue: "+input.scene.dialogue:"",input.scene?.sfx?.length?"Sound effects: "+input.scene.sfx.join(", "):"",input.scene?.music?"Music: "+input.scene.music:""].filter(Boolean).join("\n");
+  const data=await googleRequest(getVeoGenerateUrl(model),{method:"POST",body:JSON.stringify({instances:[{prompt}],parameters:{aspectRatio,resolution:process.env.VEO_RESOLUTION||"720p",numberOfVideos:1}})});
  if(!data.name)throw new Error("Veo did not return an operation name.");
  const job=clipJob(input,{status:"running",operation:data.name,provider:"google_veo"}),started=Date.now();
  while(Date.now()-started<Number(process.env.VEO_TIMEOUT_MS||600000)){
