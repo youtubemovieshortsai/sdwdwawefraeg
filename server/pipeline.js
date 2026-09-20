@@ -23,7 +23,10 @@ export async function runProductionPipeline(input={}){
 
  const plan=input.plan||await createPlan(brief,format_id);
  const format=getOutputFormat(plan.format?.id||format_id);
- const storyboard=buildStoryboard(plan);
+ const storyboard=buildStoryboard(plan).map(scene=>{
+  const asset=input.visual_assets?.[scene.id] || input.visual_assets?.[String(scene.id)];
+  return asset ? {...scene,image_path:asset} : scene;
+});
  const jobId=input.job_id||randomUUID();
  const root=path.resolve(process.env.OUTPUT_DIR||"renders");
  const workDir=input.work_dir||path.join(root,jobId);
