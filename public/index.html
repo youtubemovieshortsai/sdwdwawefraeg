@@ -33,7 +33,7 @@ pre{white-space:pre-wrap;word-break:break-word;max-height:560px;overflow:auto;ba
 <br><br><label for="brief">Creative brief</label>
 <textarea id="brief" placeholder="Beschrijf onderwerp, doelgroep, stijl, verhaal, personages en gewenste tone of voice. De AI maakt hier een volledige productie van."></textarea>
 <div class="actions">
-<button id="produceBtn" class="primary" onclick="produce()">Create & render</button>
+<button id="produceBtn" class="primary" onclick="produce()">Create & render — Free AI visuals</button>
 <button class="secondary" onclick="plan()">Plan only</button>
 <button class="secondary" onclick="save()">Save project</button>
 </div>
@@ -45,8 +45,10 @@ pre{white-space:pre-wrap;word-break:break-word;max-height:560px;overflow:auto;ba
 <pre id="plan" style="display:none">{}</pre><pre id="storyboard" style="display:none">{}</pre>
 </section>
 </div></main>
+<script src="https://js.puter.com/v2/"></script>
 <script>
 let current=null,activeJob=null,pollTimer=null;
+const PUTER_IMAGE_MODEL="gemini-3.1-flash-image-preview";
 const $=s=>document.querySelector(s);
 async function api(url,body){const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});const x=await r.json();if(!r.ok)throw new Error(x.error||"Request failed");return x;}
 function setStatus(x){$("#status").textContent=x;}
@@ -54,11 +56,74 @@ function setProgress(n){$("#progress").style.width=Math.max(0,Math.min(100,n))+"
 function showTab(name,button){["result","plan","storyboard"].forEach(x=>$("#"+x).style.display=x===name?"block":"none");document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));button.classList.add("active");}
 async function health(){try{const r=await fetch("/api/health");const x=await r.json();$("#health").textContent=x.safe_free_mode?"Studio online · Safe Free Mode":"Studio online · Paid generation enabled";}catch{$("#health").textContent="Studio offline";}}
 async function plan(){try{setStatus("Creating production plan…");setProgress(20);current=await api("/api/plan",{brief:$("#brief").value,format_id:$("#format").value});$("#plan").textContent=JSON.stringify(current,null,2);$("#storyboard").textContent=JSON.stringify(current.scenes||[],null,2);showTab("plan",document.querySelectorAll(".tab")[1]);setProgress(100);setStatus("Plan ready.");}catch(e){setProgress(0);setStatus("Error: "+e.message);}}
+async function uploadVisual(dataUrl){
+ const r=await api("/api/assets/image",{data_url:dataUrl});
+ return r.path;
+}
+function aspectFor(format){
+ if(format.id==="shorts"||format.id==="shorts_thumbnail") return {w:9,h:16};
+ return {w:16,h:9};
+}
+async function generateVisualAssets(plan,format){
+ setProgress(18);setStatus("Generating professional AI visuals with the free Puter allowance…");
+ const assets={};
+ const scenes=Array.isArray(plan.scenes)?plan.scenes:[];
+ let reference=null;
+ for(let i=0;i<scenes.length;i++){
+  const scene=scenes[i];
+  const packText=Array.isArray(scene.visual_packs)?scene.visual_packs.join(", "):"cinematic";
+  const prompt=[
+   "Professional cinematic YouTube still frame, photorealistic, premium production quality.",
+   "No text, no subtitles, no logos, no watermark.",
+   "Maintain realistic lighting, depth, composition and strong subject focus.",
+   "Visual style packs: "+packText+".",
+   "Scene visual: "+(scene.visual_prompt||""),
+   "Action: "+(scene.action||""),
+   "Continuity: "+(scene.continuity||""),
+   reference ? "Use the supplied previous frame as a visual continuity reference. Preserve the same main characters, faces, wardrobe, environment and visual style while changing the composition to match this scene." : ""
+  ].filter(Boolean).join("\n");
+  const options={model:PUTER_IMAGE_MODEL,quality:"2K",ratio:aspectFor(format)};
+  if(reference) options.input_images=[reference];
+  const image=await puter.ai.txt2img(prompt,options);
+  const dataUrl=image?.src;
+  if(!dataUrl||!dataUrl.startsWith("data:image/")) throw new Error("Puter returned no usable image for scene "+(i+1));
+  assets[scene.id||String(i+1)]=await uploadVisual(dataUrl);
+  reference=dataUrl;
+  setProgress(18+Math.round(((i+1)/Math.max(1,scenes.length))*27));
+  setStatus("AI visual "+(i+1)+"/"+scenes.length+" generated…");
+ }
+ return assets;
+}
+async function generateThumbnailAsset(plan,format){
+ setProgress(35);setStatus("Generating premium AI thumbnail…");
+ const ratio=aspectFor(format);
+ const prompt=[
+  "High-end YouTube thumbnail artwork, cinematic and instantly readable at small size.",
+  "Strong focal subject, dramatic lighting, clear foreground/background separation, vivid but professional color grading.",
+  "Do not render any words, letters, logos or watermarks; typography will be added separately.",
+  "Concept: "+(plan.thumbnail_prompt||plan.title||"YouTube thumbnail")
+ ].join("\n");
+ const image=await puter.ai.txt2img(prompt,{model:PUTER_IMAGE_MODEL,quality:"2K",ratio});
+ const dataUrl=image?.src;
+ if(!dataUrl||!dataUrl.startsWith("data:image/")) throw new Error("Puter returned no usable thumbnail image.");
+ return uploadVisual(dataUrl);
+}
 async function produce(){
  try{
   if(!$("#brief").value.trim())throw new Error("Add a creative brief first.");
-  $("#produceBtn").disabled=true;setProgress(5);setStatus("Starting production job…");
-  const job=await api("/api/production-jobs",{brief:$("#brief").value,format_id:$("#format").value});
+  $("#produceBtn").disabled=true;setProgress(5);setStatus("Creating production plan…");
+  current=await api("/api/plan",{brief:$("#brief").value,format_id:$("#format").value});
+  $("#plan").textContent=JSON.stringify(current,null,2);
+  $("#storyboard").textContent=JSON.stringify(current.scenes||[],null,2);
+  const formatInfo=await fetch("/api/formats/"+encodeURIComponent(current.format?.id||$("#format").value)).then(r=>r.json());
+  let payload={brief:$("#brief").value,format_id:$("#format").value,plan:current};
+  if(String(formatInfo.id||"").includes("thumbnail")){
+   payload.image_file=await generateThumbnailAsset(current,formatInfo);
+  }else{
+   payload.visual_assets=await generateVisualAssets(current,formatInfo);
+  }
+  setProgress(48);setStatus("AI visuals ready. Rendering video…");
+  const job=await api("/api/production-jobs",payload);
   activeJob=job.id;await pollJob();
  }catch(e){setProgress(0);setStatus("Production error: "+e.message);$("#produceBtn").disabled=false;}
 }
