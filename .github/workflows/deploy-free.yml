@@ -1,0 +1,44 @@
+name: Deploy AI Video Studio (Safe Free Mode)
+
+on:
+  push:
+    branches:
+      - feature/ai-video-studio
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ai-video-studio-509112
+          workload_identity_provider: projects/66433455265/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions
+          service_account: ai-video-studio-deployer@ai-video-studio-509112.iam.gserviceaccount.com
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Deploy Cloud Run
+        run: |
+          gcloud run deploy ai-video-studio             --source .             --project ai-video-studio-509112             --region europe-west4             --platform managed             --service-account ai-video-studio-runtime@ai-video-studio-509112.iam.gserviceaccount.com             --allow-unauthenticated             --set-env-vars AI_VIDEO_PAID_MODE=false,VIDEO_PROVIDER=google_veo,VEO_MODEL=veo-3.1-generate-preview,VEO_RESOLUTION=720p,GEMINI_FREE_MODEL=gemini-3.1-flash-lite,GEMINI_TTS_MODEL=gemini-3.1-flash-tts-preview,GEMINI_TTS_VOICE=Kore             --set-secrets OPENAI_API_KEY=openai-api-key:1,GEMINI_API_KEY=gemini-api-key:2
