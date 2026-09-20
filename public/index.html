@@ -122,9 +122,15 @@ async function produce(){
   }else{
    payload.visual_assets=await generateVisualAssets(current,formatInfo);
   }
-  setProgress(48);setStatus("AI visuals ready. Rendering video…");
-  const job=await api("/api/production-jobs",payload);
-  activeJob=job.id;await pollJob();
+  setProgress(48);setStatus("AI visuals ready. Rendering video and audio…");
+  const result=await api("/api/production-pipeline",payload);
+  setProgress(100);
+  current=result.plan;
+  $("#plan").textContent=JSON.stringify(result.plan,null,2);
+  $("#storyboard").textContent=JSON.stringify(result.storyboard||[],null,2);
+  renderResult(result);
+  setStatus("Production complete.");
+  $("#produceBtn").disabled=false;
  }catch(e){setProgress(0);setStatus("Production error: "+e.message);$("#produceBtn").disabled=false;}
 }
 async function pollJob(){
