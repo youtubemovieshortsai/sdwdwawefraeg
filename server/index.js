@@ -19,7 +19,7 @@ import { createJob, loadJob, listJobs, runJob } from "./jobs.js";
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const app=express();
 const outputDir=path.resolve(process.env.OUTPUT_DIR||"renders");
-app.use(express.json({limit:"10mb"}));
+app.use(express.json({limit:"20mb"}));
 app.use(express.static(path.join(__dirname,"..","public")));
 app.use("/renders",express.static(outputDir));
 
@@ -29,7 +29,7 @@ app.post("/api/assets/image",async(req,res)=>{
   const match=dataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/);
   if(!match) return res.status(400).json({error:"data_url must be a PNG, JPEG or WebP data URL"});
   const data=Buffer.from(match[2],"base64");
-  if(!data.length||data.length>12*1024*1024) return res.status(413).json({error:"image must be between 1 byte and 12 MB"});
+  if(!data.length||data.length>15*1024*1024) return res.status(413).json({error:"image must be between 1 byte and 12 MB"});
   const ext=match[1].split("/")[1].replace("jpeg","jpg");
   const rel=path.join("assets",randomUUID()+"."+ext);
   const file=path.join(outputDir,rel);
