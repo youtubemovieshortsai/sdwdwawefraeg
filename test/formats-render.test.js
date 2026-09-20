@@ -29,7 +29,7 @@ test("storyboard normalizes scene durations",()=>{
 test("pipeline creates clip jobs from an existing plan without an API key",async()=>{
  const plan={title:"Demo",duration_seconds:5,format:getOutputFormat("shorts"),hook:"Hook",characters:[],scenes:[{id:"1",start:0,end:5,visual_prompt:"demo",action:"",dialogue:"",caption:"",sfx:[],music:"",continuity:""}],thumbnail_prompt:"",thumbnail_text:"",composition:"",qc:[]};
  const out=await runProductionPipeline({plan,format_id:"shorts"});
- assert.equal(out.status,"planned"); assert.equal(out.clip_jobs.length,1); assert.equal(out.next_stage,"clip_generation");
+ assert.equal(out.status,"rendered"); assert.equal(out.clip_jobs.length,1); assert.equal(out.next_stage,"complete"); assert.ok(out.rendered?.output);
 });
 
 test("subtitle writer creates valid SRT sidecar",async()=>{

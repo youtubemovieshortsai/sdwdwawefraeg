@@ -15,8 +15,10 @@ export function buildRenderPlan(project = {}) {
       : []
   }));
 
+  const extension = format.id.includes("thumbnail") ? ".png" : ".mp4";
+
   return {
-    output: project.output || `renders/${format.id}`,
+    output: project.output || `renders/${format.id}${extension}`,
     format: format.id.includes("thumbnail") ? "png" : "mp4",
     format,
     canvas: {

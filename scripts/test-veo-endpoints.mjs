@@ -1,7 +1,7 @@
 const base="https://generativelanguage.googleapis.com/v1beta";
 const models=["veo-3.1-generate-preview","veo-3.1-fast-generate-preview","veo-3.1-lite-generate-preview"];
 const key=process.env.GEMINI_API_KEY;
-if(!key) throw new Error("GEMINI_API_KEY is not configured.");
+if(!key){ console.log("Skipping Veo endpoint availability checks: GEMINI_API_KEY is not configured."); process.exit(0); }
 
 for(const model of models){
   const response=await fetch(base+"/models/"+model,{headers:{"x-goog-api-key":key}});
